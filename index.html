@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+      body { 
+        background: #2F2F2F;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Elevation Test</h1>
+
+    <div id="plot-window" style="width: 480px; height: 400px;"></div>
+
+    Date: <input type="date" id="date" value="2016-09-14"><br>
+    Comets:<br>
+    <textarea rows="20" cols="50" id="comets">
+2P,0,0
+6P,2,0
+9P,2,20
+10P,4,70
+</textarea><br>
+    <button id="reset-button">Reset</button>
+    <button id="load-button">Load ephemerides</button>
+    <button id="plot-button">Plot</button>
+  </body>
+  <script type="text/javascript" src="geometry.js"></script>
+  <script type="text/javascript" src="elevation.js"></script>
+</html>
