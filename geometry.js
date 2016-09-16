@@ -4,6 +4,27 @@ function deg2rad(x) { return (x * Math.PI / 180); }
 function hr2rad(x) { return (x * Math.PI / 12); }
 function branchcut(cut, period) { return function(x) { y = x % period; return (y<cut)?(y):(y - period);}; }
 
+function findRise(thresh) {
+  // Return a fuction that will find the time an object rises above
+  // the given altitude
+  return function(this_alt, i, alt) {
+    return ((alt[i-1] < thresh) && (this_alt >= thresh));
+  };
+};
+
+function findSet(thresh) {
+  // Return a fuction that will find the time an object rises above
+  // the given altitude
+  return function(this_alt, i, alt) {
+    return ((alt[i-1] > thresh) && (this_alt <= thresh));
+  };
+};
+
+function atStart(this_alt, i, alt) {
+  // Function to find astronomical twilight start via Array.findIndex
+  return ((alt[i-1] > -18) && (this_alt <= -18));
+}
+
 function hadec2altaz(ha, dec, lat) {
 /*  Convert hour angle and declination to altitude and azimuth.
 
@@ -82,3 +103,4 @@ function ct2lst(date, lon) {
   lst = (th0 + lon - hr2rad(tzoff)) % (2 * Math.PI);
   return lst;
 }
+

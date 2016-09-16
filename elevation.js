@@ -5,6 +5,10 @@ $(document).ready(
   }
 );
 
+var DEBUG = true;
+var ctSteps = 360;
+var ctStepSize = 2 * Math.PI / ctSteps;  // rad
+
 var layout = {
   xaxis: {title: 'Civil Time (hr)', range: [-7, 7]},
   yaxis: {title: 'Elevation (deg)', range: [0, 90]},
@@ -18,14 +22,17 @@ var layout = {
 };
 
 function getIMCCE(name, type, date, done) {
-  // http://vo.imcce.fr/webservices/miriade/ephemcc_query.php?-name=c:2P&-ep=2016-09-14&-from:maryland&-mime=html
-  data = {};
-  data['-name'] = type + ':' + name;
-  data['-ep'] = date;
-  data['-mime'] = 'text';
-  data['-from'] = 'elevation-webapp';
-  $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', data)
-    .done(done);
+  if (DEBUG) {
+    done("# Flag: 1\n# Ticket: 1474026768834\n# Solar system object ephemeris by IMCCE\n# Planet 11 Sun\n# Diameter (km): 1392000.00\n# CEU (arcsec): 0.00000000E+00\n# CEU rate (arcsec/d): 0.00000000E+00\n# Planetary theory INPOP13C\n# Astrometric J2000 coordinates\n# Frame center: geocenter\n# Relativistic perturbations, coordinate system 0\n# Equatorial coordinates (RA, DEC)\n#         Date UTC              R.A            Dec.          Distance     V.Mag   Phase   Elong.  muRAcosDE     muDE      Dist_dot\n#             h  m  s       h  m  s         o  '  \"            AU                   o        o      \"/min      \"/min       km/s\n  2016-09-14T00:00:00.00   11 28 20.21832 +03 25  1.0909    1.005859201  -26.73    0.00     0.00  0.2237E+01 -0.9590E+00   -0.46974\n\n");
+  } else {
+    params = {};
+    params['-name'] = type + ':' + name;
+    params['-ep'] = date;
+    params['-mime'] = 'text';
+    params['-from'] = 'elevation-webapp';
+    $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
+      .done(done);
+  }
 }
 
 function processIMCCE(data) {
@@ -49,19 +56,87 @@ function processIMCCE(data) {
 function addSun(data) {
   // data is a result from the IMCCE's ephemcc service
   c = processIMCCE(data);
-  sun = generateData('Sun', c.ra, c.dec);
-  daylight = sun.alt.map(function(x){return x>0;});
-  twilight = sun.alt.map(function(x){return x>-0.314;});  // -18 deg = -0.314
-  sunset = ct[sun.alt.findIndex(function(e, i, a){return (ct[i]<0)&&(e<0);})];
-  sunrise = ct[sun.alt.findIndex(function(e, i, a){return (ct[i]<0)&&(e>0);})];
-  data = [
-    { type: 'box', x: [-12, sunset], y: [-90, 90] },
-    { type: 'box', x: [sunrise, 12], y: [-90, 90] }
-  ];
-  Plotly.addTraces('plot-window', data);
+  var sun = generateAltAz(c.ra, c.dec);
+  var sunset = sun.ct[sun.alt.findIndex(findSet(0))];
+  var sunrise = sun.ct[sun.alt.findIndex(findRise(0))];
+  var atend = sun.ct[sun.alt.findIndex(findSet(-18))];
+  var atstart = sun.ct[sun.alt.findIndex(findRise(-18))];
+  var ctend = sun.ct[sun.alt.findIndex(findSet(-6))];
+  var ctstart = sun.ct[sun.alt.findIndex(findRise(-6))];
+  var update = {
+    shapes: [
+      { type: 'rect',
+	xref: 'x',
+	x0: -12,
+	x1: sunset,
+	yref: 'paper',
+	y0: 0,
+	y1: 1,
+	fillcolor: '#87cefa',
+	opacity: 0.2,
+	line: { width: 0 }
+      },
+      { type: 'rect',
+	xref: 'x',
+	x0: sunrise,
+	x1: 12,
+	yref: 'paper',
+	y0: 0,
+	y1: 1,
+	fillcolor: '#87cefa',
+	opacity: 0.2,
+	line: { width: 0 }
+      },
+      { type: 'rect',
+	xref: 'x',
+	x0: -12,
+	x1: atend,
+	yref: 'paper',
+	y0: 0,
+	y1: 1,
+	fillcolor: '#87cefa',
+	opacity: 0.2,
+	line: { width: 0 }
+      },
+      { type: 'rect',
+	xref: 'x',
+	x0: atstart,
+	x1: 12,
+	yref: 'paper',
+	y0: 0,
+	y1: 1,
+	fillcolor: '#87cefa',
+	opacity: 0.2,
+	line: { width: 0 }
+      },
+      { type: 'rect',
+	xref: 'x',
+	x0: -12,
+	x1: ctend,
+	yref: 'paper',
+	y0: 0,
+	y1: 1,
+	fillcolor: '#87cefa',
+	opacity: 0.2,
+	line: { width: 0 }
+      },
+      { type: 'rect',
+	xref: 'x',
+	x0: ctstart,
+	x1: 12,
+	yref: 'paper',
+	y0: 0,
+	y1: 1,
+	fillcolor: '#87cefa',
+	opacity: 0.2,
+	line: { width: 0 }
+      }
+    ]
+  };
+  Plotly.relayout('plot-window', update);
 }
 
-function generateData(name, ra, dec) {
+function generateAltAz(ra, dec) {
   // ra, dec in radians
   var date = new Date(2016, 6, 14);
   var lat = deg2rad(32.0);  // rad
@@ -69,22 +144,27 @@ function generateData(name, ra, dec) {
   var lst0 = ct2lst(date, lon);  // rad
 
   var ct = [-Math.PI];
-  for (var i=1; i<361; i++) {
-    ct.push(ct[i-1] + 2 * Math.PI / 360);  // rad
+  for (var i=1; i<=ctSteps; i++) {
+    ct.push(ct[i-1] + ctStepSize);  // rad
   };
   
   var ha = ct.map(function(x){return (x + lst0 - ra) % (2 * Math.PI)});
   var altaz = hadec2altaz(ha, dec, lat);
 
   return {
-    name: name,
-    x: ct.map(rad2hr).map(branchcut(12, 24)),
-    y: altaz.alt.map(rad2deg),
-    type: 'scatter',
-    mode: 'lines'
+    ct: ct.map(rad2hr).map(branchcut(12, 24)),
+    alt: altaz.alt.map(rad2deg),
+    az: altaz.az.map(rad2deg),
   };
 }
 
+/*
+  name: '',
+x:,
+y:,
+    type: 'scatter',
+    mode: 'lines'
+*/
 function plotData() {
   var comets = $('#comets').val().split('\n');
   var data = [];
@@ -98,10 +178,17 @@ function plotData() {
     if (row.length != 3) {
       continue;
     }
+
+    altaz = generateAltAz(hr2rad(parseFloat(row[1])),
+			  deg2rad(parseFloat(row[2])));
     
-    data.push(generateData(row[0],
-			   hr2rad(parseFloat(row[1])),
-			   deg2rad(parseFloat(row[2]))));
+    data.push({
+      name: row[0],
+      x: altaz.ct,
+      y: altaz.alt,
+      type: 'scatter',
+      mode: 'lines'
+    });
   }
 
   Plotly.newPlot('plot-window', data, layout);
