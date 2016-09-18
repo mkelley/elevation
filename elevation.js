@@ -2,6 +2,7 @@ $(document).ready(
   function() {
     initializePlot();
     $('#elevation-load-button').click(loadTargets);
+    $('#elevation-reset-button').click(clearTargets);
     $('.elevation-observatory').click(setLocation);
   }
 );
@@ -31,7 +32,8 @@ function initializePlot() {
       l: 50,
       r: 50,
     },
-    hovermode: 'closest'
+    hovermode: 'closest',
+    showlegend: true,
   };
   Plotly.newPlot('elevation-plot', [], layout);
   getIMCCE('sun', 'p', addSun);
@@ -48,29 +50,27 @@ function getIMCCE(name, type, done) {
 }
 
 function processIMCCE(data) {
+  var lines = data.split('\n');
+  var name = lines[3].substr(2);
+  var row = lines[lines.length - 3].split(/\s+/);
+  var ra = hr2rad(parseFloat(row[2])
+		  + parseFloat(row[3]) / 60
+		  + parseFloat(row[4]) / 3600);
+
+  var sgn = -1 ? (row[5][0] == '-') : 1;
+  var dec = deg2rad(parseFloat(row[5])
+		    + sgn * parseFloat(row[6]) / 60
+		    + sgn * parseFloat(row[7]) / 3600);
   if (DEBUG) {
     console.log(data);
+    console.log(row);
+    console.log('RA, Dec:', ra, dec);
   }
-  lines = data.split('\n');
-  name = lines[3].substr(2);
-  row = lines[lines.length - 3].split(/\s+/);
-  ra = hr2rad(parseFloat(row[2])
-	      + parseFloat(row[3]) / 60
-	      + parseFloat(row[4]) / 3600);
-  if (row[5][0] == '-') {
-    sgn = -1;
-  } else {
-    sgn = 1;
-  }
-  dec = deg2rad(parseFloat(row[5])
-		+ sgn * parseFloat(row[6]) / 60
-		+ sgn * parseFloat(row[7]) / 3600);
   return {name: name, ra: ra, dec: dec};
 }
 
-function addSun(c) {
-  // data is a result from the IMCCE's ephemcc service
-  var sun = generateAltAz(c.ra, c.dec);
+function addSun(coords) {
+  var sun = generateAltAz(coords);
 
   var update = { shapes: [] };
   var alt = [-18, -6, 0];
@@ -98,7 +98,6 @@ function addSun(c) {
 }
 
 function getDate() {
-  //var d = $('#elevation-date').val().split('-');
   return moment.tz($('#elevation-date').val(), $('#elevation-timezone').val());
 }
 
@@ -114,7 +113,7 @@ function getLST0(date, loc) {
   return ct2lst(date, loc.lon);
 }
 
-function generateAltAz(ra, dec) {
+function generateAltAz(coords) {
   // ra, dec in radians
   var date = getDate();
   var loc = getLocation();
@@ -125,13 +124,18 @@ function generateAltAz(ra, dec) {
     ct.push(ct[i-1] + ctStepSize);  // rad
   };
 
-  var ha = ct.map(function(x){return (x + lst0 - ra) % (2 * Math.PI)});
-  var altaz = hadec2altaz(ha, dec, loc.lat);
+  var ha = ct.map(function(x){
+    return (x + lst0 - coords.ra) % (2 * Math.PI);
+  });
+  var altaz = hadec2altaz(ha, coords.dec, loc.lat);
 
   if (DEBUG) {
+    console.log(ct);
+    console.log(coords);
     console.log(date);
     console.log(loc);
     console.log(lst0);
+    console.log(altaz);
   }
   
   return {
@@ -141,17 +145,8 @@ function generateAltAz(ra, dec) {
   };
 }
 
-function deleteData() {
-  var plot = document.getElementById('elevation-plot');
-  var traces = [];
-  for (var i in plot.data) {
-    traces.push(i);
-  }
-  Plotly.deleteTraces('elevation-plot', traces);
-}
-
 function plotData() {
-  deleteData();
+  clearTargets();
   var data = [];
 
   var targets = $('#elevation-targets').val().split('\n');
@@ -164,8 +159,10 @@ function plotData() {
       continue;
     }
 
-    altaz = generateAltAz(hr2rad(parseFloat(row[2])),
-			  deg2rad(parseFloat(row[3])));
+    altaz = generateAltAz({
+      ra: hr2rad(parseFloat(row[2])),
+      dec: deg2rad(parseFloat(row[3]))
+    });
     
     data.push({
       name: row[0],
@@ -188,7 +185,7 @@ function setLocation(e) {
 function loadTargets() {
   var targets = $('#elevation-targets').val().split('\n');
   $('#elevation-target-control').html('');
-  
+
   for (var i in targets) {
     if (targets[i].startsWith('#')) {
       continue;
@@ -206,41 +203,53 @@ function loadTargets() {
   }
 }
 
-function newTarget(c) {
+function newTarget(coords) {
   var targetControl = $('#elevation-target-control');
   var input = $('<input type="checkbox" checked="checked">');
-  input.data('c', c);
+  input.data('coords', coords);
   input.change(toggleLine);
   targetControl.append(input);
   targetControl.append('<label>'
-		       + c.name + '('
-		       + Math.round(c.ra) + ', '
-		       + Math.round(c.dec)
+		       + coords.name + '('
+		       + Math.round(rad2hr(coords.ra)) + ', '
+		       + Math.round(rad2deg(coords.dec))
 		       + ')</label><br>');
-  plotTarget(c);
+  plotTarget(coords);
 }
 
-function plotTarget(c) {
-  var altaz = generateAltAz(hr2rad(c.ra), deg2rad(c.dec));
+function plotTarget(coords) {
+  console.log(coords);
+  var altaz = generateAltAz(coords);
   var data = {
-    name: c.name,
+    name: coords.name,
     x: altaz.ct,
     y: altaz.alt,
     type: 'scatter',
-    mode: 'lines'
+    mode: 'lines',
+    hoverinfo: 'name',
   };
   Plotly.addTraces('elevation-plot', data);
 }
 
+function clearTargets() {
+  var plot = $('#elevation-plot')[0];
+  var traces = [];
+  for (var i in plot.data) {
+    traces.push(i);
+  }
+  Plotly.deleteTraces('elevation-plot', traces);
+  $('#elevation-target-control').html('');
+}
+
 function toggleLine(e) {
   var plot = $('#elevation-plot')[0];
-  var c = $(e.target).data('c');
+  var coords = $(e.target).data('coords');
   var traces = plot.data.map(function(x){return x.name;});
-  var i = traces.indexOf(c.name);
+  var i = traces.indexOf(coords.name);
   console.log(i);
   if (i >= 0) {
-    Plotly.deleteTraces('elevation-plot', traces.indexOf(c.name));
+    Plotly.deleteTraces('elevation-plot', traces.indexOf(coords.name));
   } else {
-    plotTarget(c);
+    plotTarget(coords);
   }
 }

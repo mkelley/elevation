@@ -30,8 +30,8 @@
       </p>
       <p>
 	Location:
-        <input class="latlon" type="number" min="-90", max="+90" step="any" id="elevation-latitude" value="34.7444">&deg; N,
-        <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-longitude" value="-111.4223">&deg; E,
+        <input class="latlon" type="number" min="-90", max="+90" step="any" id="elevation-latitude" value="34.7444">&deg; N
+        <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-longitude" value="-111.4223">&deg; E
         <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
       </p>
       <p>
@@ -40,18 +40,19 @@
 	<button class="elevation-observatory" data-latitude="39.0020" data-longitude="-76.9561" data-timezone="US/Eastern">UMD</button>
 	<button class="elevation-observatory" data-latitude="24.6275" data-longitude="-70.4044" data-timezone="America/Santiago">VLT</button><br>
       </p>
+      <button id="elevation-update-button">Update plot</button>
+      
       Targets:<br>
       <textarea rows="20" cols="50" id="elevation-targets">
 # Target, type, RA (hr), Dec (deg)
 # type = c, a, p, f for comet, asteroid, planet, or fixed
 2P,c
-6P,c
-9P,c
-10P,c
+#6P,c
+#9P,c
+#10P,c
 </textarea><br>
-      <button id="elevation-reset-button" disabled="1">Reset</button>
+      <button id="elevation-reset-button">Reset</button>
       <button id="elevation-load-button">Load targets</button>
-      <button id="elevation-plot-button">Plot</button>
     </div>
 
   </body>

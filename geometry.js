@@ -68,7 +68,7 @@ function hadec2altaz(ha, dec, lat) {
     alt.push(Math.atan2(z[i], r));
     az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
   }
-
+  
   return {alt: alt, az: az};
 }
 
@@ -92,19 +92,15 @@ function ct2lst(date0, lon) {
       The local sidereal time.  [rad]
 
 */
-
   var tzoff = hr2rad(date0.utcOffset() / 60);
   var j2000 = moment.utc("2000-01-01 12:00");
   var d = (date0 - j2000) / 86400 / 1000 - tzoff / 24;  // days
   d = Math.round(d - 1.0) + 0.5; // UT date?
   var y = d / 36525;  // years
-  console.log('d, y:', d, y);
-  
-  var th0 = 280.46061837 + 360.98564736629 * d + 0.000387933 * y**2 - y**3 / 38710000.0;
+  var th0 = 280.46061837 + 360.98564736629 * d
+      + 0.000387933 * y**2 - y**3 / 38710000.0;
   th0 = deg2rad(th0 % 360);
-
   var lst = (th0 + lon - tzoff) % (2 * Math.PI);
-  console.log('th0, long, tzoff, lst:', th0, lon, tzoff, lst);
   return lst;
 }
 
