@@ -3,14 +3,16 @@ $(document).ready(
     initializePlot();
     $('#elevation-load-button').click(loadTargets);
     $('#elevation-reset-button').click(clearTargets);
-    $('#elevation-update-button').click(updatePlot);
     $('.elevation-observatory').click(setLocation);
+    $('#elevation-date').on('input', updatePlot);
+    $('#elevation-update-location-button').click(updatePlot);
   }
 );
 
 var DEBUG = true;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
+var sunCoords;
 
 function initializePlot() {
   var layout = {
@@ -71,6 +73,7 @@ function processIMCCE(data) {
 }
 
 function addSun(coords) {
+  sunCoords = coords;
   var sun = generateAltAz(coords);
 
   var update = { shapes: [] };
@@ -96,6 +99,10 @@ function addSun(coords) {
   }
 
   Plotly.relayout('elevation-plot', update);
+}
+
+function clearSun() {
+  Plotly.relayout('elevation-plot', {shapes:[]});
 }
 
 function getDate() {
@@ -146,56 +153,46 @@ function generateAltAz(coords) {
   };
 }
 
-function plotData() {
-  clearTargets();
-  var data = [];
+function updatePlot(e) {
+  console.log(e);
+  if (e.target.id == 'elevation-date') {
+    clearSun();
+    getIMCCE('sun', 'p', addSun);
+    clearTargets();
+  } else if ((e.target.id == 'elevation-update-location-button')
+	     || (e.target.classList.contains('elevation-observatory'))) {
+    clearSun();
+    addSun(sunCoords);
 
-  var targets = $('#elevation-targets').val().split('\n');
-  for (var i=0; i<targets.length; i++) {
-    if (targets[i].startsWith('#')) {
-      continue;
+    var targets = $('.elevation-target');
+    if (targets.length > 0) {
+      var coords = targets.map(function(i, x) {
+	return $(x).data('coords');
+      });
+      clearTargets();
+      for (var i=0; i<coords.length; i++) {
+	newTarget(coords[i]);
+      }
     }
-    var row = targets[i].split(',');
-    if (targets.length != 4) {
-      continue;
-    }
-
-    altaz = generateAltAz({
-      ra: hr2rad(parseFloat(row[2])),
-      dec: deg2rad(parseFloat(row[3]))
-    });
-    
-    data.push({
-      name: row[0],
-      x: altaz.ct,
-      y: altaz.alt,
-      type: 'scatter',
-      mode: 'lines'
-    });
   }
-
-  Plotly.addTraces('elevation-plot', data);
-}
-
-function updatePlot() {
-
 }
 
 function setLocation(e) {
   $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
   $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
   $('#elevation-timezone').val(e.target.dataset.timezone);
+  updatePlot(e);
 }
 
 function loadTargets() {
-  var targets = $('#elevation-targets').val().split('\n');
-  $('#elevation-target-control').html('');
+  clearTargets();
+  var lines = $('#elevation-target-list').val().split('\n');
 
-  for (var i in targets) {
-    if (targets[i].startsWith('#')) {
+  for (var i in lines) {
+    if (lines[i].startsWith('#')) {
       continue;
     }
-    var row = targets[i].split(',');
+    var row = lines[i].split(',');
     if (row.length == 2) {
       getIMCCE(row[0], row[1], newTarget);
     } else if (row.length == 4) {
@@ -210,7 +207,7 @@ function loadTargets() {
 
 function newTarget(coords) {
   var targetControl = $('#elevation-target-control');
-  var input = $('<input type="checkbox" checked="checked">');
+  var input = $('<input class="elevation-target" type="checkbox" checked="checked">');
   input.data('coords', coords);
   input.change(toggleLine);
   targetControl.append(input);
@@ -239,7 +236,7 @@ function plotTarget(coords) {
 function clearTargets() {
   var plot = $('#elevation-plot')[0];
   var traces = [];
-  for (var i in plot.data) {
+  for (var i=0; i<plot.data.length; i++) {
     traces.push(i);
   }
   Plotly.deleteTraces('elevation-plot', traces);
