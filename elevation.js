@@ -9,7 +9,7 @@ $(document).ready(
   }
 );
 
-var DEBUG = true;
+var DEBUG = false;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
 var sunCoords;
@@ -55,6 +55,17 @@ function getIMCCE(name, type, done) {
 function processIMCCE(data) {
   var lines = data.split('\n');
   var name = lines[3].substr(2);
+
+  var m = name.match(/Asteroid: (.+)/);
+  if (m !== null) {
+    name = m[1];
+  }
+
+  var m = name.match(/Comet:.*\((.+)\)/);
+  if (m !== null) {
+    name = m[1];
+  }
+  
   var row = lines[lines.length - 3].split(/\s+/);
   var ra = hr2rad(parseFloat(row[2])
 		  + parseFloat(row[3]) / 60
@@ -212,10 +223,10 @@ function newTarget(coords) {
   input.change(toggleLine);
   targetControl.append(input);
   targetControl.append('<label>'
-		       + coords.name + '('
+		       + coords.name /* + ' ('
 		       + Math.round(rad2hr(coords.ra)) + ', '
-		       + Math.round(rad2deg(coords.dec))
-		       + ')</label><br>');
+		       + Math.round(rad2deg(coords.dec)) + ')' */
+		       + '</label><br>');
   plotTarget(coords);
 }
 
