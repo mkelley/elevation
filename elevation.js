@@ -3,6 +3,7 @@ $(document).ready(
     initializePlot();
     $('#elevation-load-button').click(loadTargets);
     $('#elevation-reset-button').click(clearTargets);
+    $('#elevation-update-button').click(updatePlot);
     $('.elevation-observatory').click(setLocation);
   }
 );
@@ -174,6 +175,10 @@ function plotData() {
   }
 
   Plotly.addTraces('elevation-plot', data);
+}
+
+function updatePlot() {
+
 }
 
 function setLocation(e) {
