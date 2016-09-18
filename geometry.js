@@ -72,7 +72,7 @@ function hadec2altaz(ha, dec, lat) {
   return {alt: alt, az: az};
 }
 
-function ct2lst(date, lon) {
+function ct2lst(date0, lon) {
 /*  Convert civil time to local sidereal time.
 
     Timezone is not considered.
@@ -81,8 +81,8 @@ function ct2lst(date, lon) {
 
     Parameters
     ----------
-    date : Date
-      The requested date and time (usually midnight civil time).
+    date0 : moment
+      The requested date (midnight civil time).
     lon : float
       The East longitude of the observer. [rad]
 
@@ -93,14 +93,18 @@ function ct2lst(date, lon) {
 
 */
 
-  var tzoff = 0;
-  var j2000 = new Date(Date.UTC(2000, 1, 1, 12)); // JD2000 = 2451545
-  var d = (date - j2000) / 86400 / 1000;  // days
+  var tzoff = hr2rad(date0.utcOffset() / 60);
+  var j2000 = moment.utc("2000-01-01 12:00");
+  var d = (date0 - j2000) / 86400 / 1000 - tzoff / 24;  // days
+  d = Math.round(d - 1.0) + 0.5; // UT date?
   var y = d / 36525;  // years
-  //th0 = 280.46061837 + 360.98564736629 * d + 0.000387933 * y**2 - y**3 / 38710000.0;
-  //th0 = th0 % 360.0;
-  th0 = 4.8949612127357929 + 6.300388098984957 * d + 6.7707081271391622e-06 * y**2 - 4.508729661571505e-10 * y**3;
-  lst = (th0 + lon - hr2rad(tzoff)) % (2 * Math.PI);
+  console.log('d, y:', d, y);
+  
+  var th0 = 280.46061837 + 360.98564736629 * d + 0.000387933 * y**2 - y**3 / 38710000.0;
+  th0 = deg2rad(th0 % 360);
+
+  var lst = (th0 + lon - tzoff) % (2 * Math.PI);
+  console.log('th0, long, tzoff, lst:', th0, lon, tzoff, lst);
   return lst;
 }
 
