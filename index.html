@@ -23,6 +23,7 @@
         padding: 5px;
         width: 75%;
       }
+      table td { border: 1px solid #aaa; }
     </style>
   </head>
   <body>
@@ -60,36 +61,58 @@
 # - Use all four columns for fixed targets,
 # - Use only the first two for Solar System targets.
 #
+# Some of the newer comets are not in the IMCCE database.  For these
+# you will need to manually enter the RA and Dec for your date.
+#
 # Target, type, RA (hr), Dec (deg)
 2P,c
 6P,c
-9P,c
-10P,c
-15P,c
-19P,c
-22P,c
-46P,c
-67P,c
-71P,c
-73P-B,c
-73P-C,c
-81P,c
-88P,c
-103P,c
 C/2012 K1,c
-C/2013 A1,c
 C/2013 US10,c
-C/2013 X1,c
-C/2014 Q2,c
-C/2015 V2,c
-C/2015 VL62,c
-C/2016 M1,c
 </textarea><br>
       <button id="elevation-reset-button">Reset</button>
-      <button id="elevation-load-button">Load targets</button>
+      <button id="elevation-load-button">Plot targets</button><br>
+    </div>
+    <div class="box">
+      <h2>Pre-computed RA, Dec for some targets</h2>
+      
+      <select id="target-set-date">
+	<option value="20170115">2017-01-15</option>
+	<option value="20170215">2017-02-15</option>
+	<option value="20170315">2017-03-15</option>
+	<option value="20170415">2017-04-15</option>
+	<option value="20170515">2017-05-15</option>
+	<option value="20170615">2017-06-15</option>
+	<option value="20170715">2017-07-15</option>
+      </select>
+      
+      <select id="target-set-number">
+	<option value="0">0</option>
+	<option value="1">1</option>
+	<option value="2">2</option>
+      </select>
+
+      <button id="target-set-load">Load targets</button>
+      
+      <p>Select date and set, then [Load targets].</p>
+      <table>
+	<tr><th>Set 0</th>                      <th>Set 1</th><th>Set 2</th></tr>
+	<tr><td>2P/Encke</td>                   <td>67P/G-C</td><td>C/2013 X1</td></tr>
+	<tr><td>6P/d'Arrest</td>                <td>71P/Clark</td><td>C/2014 Q2</td></tr>
+	<tr><td>9P/Tempel 1</td>                <td>73P/SW3 B</td><td>C/2015 V2</td></tr>
+	<tr><td>10P/Tempel 2</td>               <td>73P/SW3 C</td><td>C/2015 VL62</td></tr>
+	<tr><td>15P/Finlay</td>                 <td>81P/Wild 2</td><td>C/2016 M1</td></tr>
+	<tr><td>19P/Borrelly</td>               <td>88P/Howell</td><td></td></tr>
+	<tr><td>22P/Kopff</td>                  <td>103P/Hartley 2</td><td></td></tr>
+	<tr><td>41P/Tuttle-Giacobini-Kresak</td><td>C/2012 K1</td><td></td></tr>
+	<tr><td>45P/Honda-Mrkos-Pajdusakova</td><td>C/2013 A1</td><td></td></tr>
+	<tr><td>46P/Wirtanen</td>               <td>C/2013 US10</td><td></td></tr>
+      </table>
+      
     </div>
 
   </body>
   <script type="text/javascript" src="geometry.js"></script>
   <script type="text/javascript" src="elevation.js"></script>
+  <script type="text/javascript" src="data.js"></script>
 </html>

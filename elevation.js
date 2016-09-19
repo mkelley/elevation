@@ -6,6 +6,7 @@ $(document).ready(
     $('.elevation-observatory').click(setLocation);
     $('#elevation-date').on('input', updatePlot);
     $('#elevation-update-location-button').click(updatePlot);
+    $('#target-set-load').click(loadTargetSet);
   }
 );
 
@@ -208,9 +209,9 @@ function loadTargets() {
       getIMCCE(row[0], row[1], newTarget);
     } else if (row.length == 4) {
       newTarget({
-	name: parseFloat[0],
-	ra: parseFloat(row[2]),
-	dec: parseFloat(row[3])
+	name: row[0],
+	  ra: hr2rad(parseFloat(row[2])),
+	  dec: deg2rad(parseFloat(row[3]))
       });
     }
   }
