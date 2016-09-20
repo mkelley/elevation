@@ -23,16 +23,45 @@
         padding: 5px;
         width: 75%;
       }
-      table td { border: 1px solid #aaa; }
+
+      table {
+        border-collapse: collapse;
+      }
+      table, th, td {
+        border: 1px solid #aaa;
+      }
+      tr:hover { background-color: #5f5f5f; }
+
+      .overflowx { overflow-x: auto; }
     </style>
   </head>
   <body>
     <h1>Elevation Prototype</h1>
 
-    <div id="elevation-target-control" style="float: right;"></div>
     <div id="elevation-plot" style="margin: 5px; width: 75%; height: 75%;"></div>
-    
+        
+    <div class="box overflowx">
+      <h2>Target table</h2>
+      <table id="elevation-target-table" style="table">
+	<thead>
+	  <tr>
+	    <th>Target</th>
+	    <th>RA (hr)</th>
+	    <th>Dec (&deg;)</th>
+	    <th>m<sub>V</sub></th>
+	    <th>&Delta; (au)</th>
+	    <th>d&Delta;/dt (km/s)</th>
+	    <th>Phase (&deg;)</th>
+	    <th>Elong. (&deg;)</th>
+	    <th>Motion (''/hr)</th>
+	</thead>
+	<tbody>
+	</tbody>
+      </table>
+    </div>
+
     <div class="box">
+      <h2>Date and location</h2>
       <p>
 	Date: <input type="date" id="elevation-date" value="2016-09-22">
       </p>
@@ -56,9 +85,9 @@
 	<button id="elevation-update-location-button">Update location</button>
       </p>
     </div>
-
+    
     <div class="box">
-      <p>Targets:</p>
+      <h2>Target input</h2>
       <textarea rows="20" cols="72" id="elevation-target-list">
 # type = c, a, p, f for comet, asteroid, planet, or fixed
 # - Use all four columns for fixed targets,
@@ -77,7 +106,7 @@ C/2013 US10,c
       <button id="elevation-load-button">Plot targets</button><br>
     </div>
     <div class="box">
-      <h2>Pre-computed RA, Dec for some targets</h2>
+      <h2>Pre-computed RA, Dec for some comets</h2>
       
       <select id="target-set-date">
 	<option value="20170115">2017-01-15</option>
