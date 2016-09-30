@@ -17,6 +17,10 @@ var ctStepSize = 2 * Math.PI / ctSteps;  // rad
 var sunCoords;
 var eph;
 
+function error(msg) {
+  $('#elevation-error').prepend('<p>' + msg + '</p>');
+}
+
 function initializePlot() {
   var layout = {
     xaxis: {
@@ -42,22 +46,27 @@ function initializePlot() {
     showlegend: true,
   };
   Plotly.newPlot('elevation-plot', [], layout);
-  eph.get('sun', 'p', addSun);
 }
 
-function IMCCE() {
-  this.get = function(name, type, done) {
-    params = {};
+class IMCCE {
+  get(name, type, done) {
+    var date = getDate();
+    if (isNaN(date)) {
+      error(Date() + ': Invalid date.');
+      return;
+    }
+    
+    var params = {};
     params['-name'] = type + ':' + name;
-    params['-ep'] = getDate().toISOString();
+    params['-ep'] = date.toISOString();
     params['-mime'] = 'text';
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
       .done(function(data){self.process(data, done);});
-  };
+  }
 
-  this.process = function(data, done) {
+  process(data, done) {
   /* Example IMCCE data:
 # Flag: 1
 # Ticket: 1474378574835
@@ -115,8 +124,8 @@ function IMCCE() {
     }
   
     done(target);
-  };
-};
+  }
+}
 
 function addSun(coords) {
   sunCoords = coords;
