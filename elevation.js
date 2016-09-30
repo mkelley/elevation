@@ -1,5 +1,6 @@
 $(document).ready(
   function() {
+    eph = new IMCCE();
     initializePlot();
     $('#elevation-load-button').click(loadTargets);
     $('#elevation-reset-button').click(clearTargets);
@@ -14,6 +15,7 @@ var DEBUG = false;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
 var sunCoords;
+var eph;
 
 function initializePlot() {
   var layout = {
@@ -40,10 +42,10 @@ function initializePlot() {
     showlegend: true,
   };
   Plotly.newPlot('elevation-plot', [], layout);
-  //getIMCCE('sun', 'p', addSun);
+  eph.get('sun', 'p', addSun);
 }
 
-var IMCCE = function() {
+function IMCCE() {
   this.get = function(name, type, done) {
     params = {};
     params['-name'] = type + ':' + name;
@@ -52,10 +54,10 @@ var IMCCE = function() {
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done(function(data){done(self.process(data));});
+      .done(function(data){self.process(data, done);});
   };
 
-  this.process = function(data) {
+  this.process = function(data, done) {
   /* Example IMCCE data:
 # Flag: 1
 # Ticket: 1474378574835
@@ -112,7 +114,7 @@ var IMCCE = function() {
       console.log(target);
     }
   
-    return target;
+    done(target);
   };
 };
 
@@ -201,7 +203,7 @@ function updatePlot(e) {
   console.log(e);
   if (e.target.id == 'elevation-date') {
     clearSun();
-    //getIMCCE('sun', 'p', addSun);
+    eph.get('sun', 'p', addSun);
     clearTargets();
   } else if ((e.target.id == 'elevation-update-location-button')
 	     || (e.target.classList.contains('elevation-observatory'))) {
@@ -238,7 +240,7 @@ function loadTargets() {
     }
     var row = lines[i].split(',');
     if (row.length == 2) {
-      //getIMCCE(row[0], row[1], newTarget);
+      eph.get(row[0], row[1], newTarget);
     } else if (row.length == 4) {
       newTarget({
 	name: row[0],
