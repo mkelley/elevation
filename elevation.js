@@ -40,20 +40,22 @@ function initializePlot() {
     showlegend: true,
   };
   Plotly.newPlot('elevation-plot', [], layout);
-  getIMCCE('sun', 'p', addSun);
+  //getIMCCE('sun', 'p', addSun);
 }
 
-function getIMCCE(name, type, done) {
-  params = {};
-  params['-name'] = type + ':' + name;
-  params['-ep'] = getDate().toISOString();
-  params['-mime'] = 'text';
-  params['-from'] = 'elevation-webapp';
-  $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-    .done(function(data){done(processIMCCE(data));});
-}
+var IMCCE = function() {
+  this.get = function(name, type, done) {
+    params = {};
+    params['-name'] = type + ':' + name;
+    params['-ep'] = getDate().toISOString();
+    params['-mime'] = 'text';
+    params['-from'] = 'elevation-webapp';
+    var self = this;
+    $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
+      .done(function(data){done(self.process(data));});
+  };
 
-function processIMCCE(data) {
+  this.process = function(data) {
   /* Example IMCCE data:
 # Flag: 1
 # Ticket: 1474378574835
@@ -72,46 +74,99 @@ function processIMCCE(data) {
 #             h  m  s       h  m  s         o  '  "            AU                   o        o      "/min      "/min       km/s
   2016-09-14T00:00:00.00    0 47  8.02777 +16  5  3.5421    1.629841562   17.60   10.46   152.44 -0.8100E+00 -0.1066E+00  -24.79021
 */
-  var lines = data.split('\n');
+    var lines = data.split('\n');
 
-  var target = {};
-  target.name = lines[3].substr(2);
+    var target = {};
+    target.name = lines[3].substr(2);
 
-  var m = target.name.match(/Asteroid: (.+)/);
-  if (m !== null) {
-    target.name = m[1];
-  }
+    var m = target.name.match(/Asteroid: (.+)/);
+    if (m !== null) {
+      target.name = m[1];
+    }
 
-  var m = target.name.match(/Comet:.*\((.+)\)/);
-  if (m !== null) {
-    target.name = m[1];
-  }
+    var m = target.name.match(/Comet:.*\((.+)\)/);
+    if (m !== null) {
+      target.name = m[1];
+    }
   
-  var eph = lines[lines.length - 3].split(/\s+/);
-  target.ra = hr2rad(parseFloat(eph[2])
-		     + parseFloat(eph[3]) / 60
-		     + parseFloat(eph[4]) / 3600);
+    var eph = lines[lines.length - 3].split(/\s+/);
+    target.ra = hr2rad(parseFloat(eph[2])
+		       + parseFloat(eph[3]) / 60
+		       + parseFloat(eph[4]) / 3600);
 
-  var sgn = -1 ? (eph[5][0] == '-') : 1;
-  target.dec = deg2rad(parseFloat(eph[5])
-		       + sgn * parseFloat(eph[6]) / 60
-		       + sgn * parseFloat(eph[7]) / 3600);
+    var sgn = -1 ? (eph[5][0] == '-') : 1;
+    target.dec = deg2rad(parseFloat(eph[5])
+			 + sgn * parseFloat(eph[6]) / 60
+			 + sgn * parseFloat(eph[7]) / 3600);
 
-  target.delta = parseFloat(eph[8]);
-  target.mv = parseFloat(eph[9]);
-  target.phase = parseFloat(eph[10]);
-  target.elong = parseFloat(eph[11]);
-  target.motion = Math.sqrt(parseFloat(eph[12])**2 + parseFloat(eph[13])**2) * 60;
-  target.ddot = parseFloat(eph[14]);
+    target.delta = parseFloat(eph[8]);
+    target.mv = parseFloat(eph[9]);
+    target.phase = parseFloat(eph[10]);
+    target.elong = parseFloat(eph[11]);
+    target.motion = Math.sqrt(parseFloat(eph[12])**2 + parseFloat(eph[13])**2) * 60;
+    target.ddot = parseFloat(eph[14]);
 
-  if (DEBUG) {
+    if (DEBUG) {
+      console.log(data);
+      console.log(eph);
+      console.log(target);
+    }
+  
+    return target;
+  };
+};
+
+function HORIZONS() {
+  this.running = false;  // keep track of when we are running the queue
+  this.queue = [];
+
+  this.get = function(name, type, done) {
+    // add object to the queue
+    this.queue.push({name: name, done: done});
+    this.run();
+  };
+
+  this.run = function() {
+    if (this.running) {
+      // queue is already running, let it go.
+      return;
+    }
+
+    if (this.queue.length == 0) {
+      // queue is empty, we're done.
+      return;
+    }
+
+    // run the queue
+    this.running = true;
+    next = this.queue.pop();
+
+    start = "'" + getDate().toISOString().substr(0, 10) + "'";
+    stop = "'" + getDate().add(1, 'day').toISOString().substr(0, 10) + "'";
+    
+    params = {};
+    params['BATCH'] = 1;
+    params['COMMAND'] = "'" + next.name + "'";
+    params['MAKE_EPHEM'] = "'YES'";
+    params['TABLE_TYPE'] = "'OBSERVER'";
+    params['START_TIME'] = start;
+    params['STOP_TIME'] = stop;
+    params['STEP_SIZE'] = "'1'";
+    params['QUANTITIES'] = "'1,3,9,19,20,23,24,27,33'";
+    params['CSV_FORMAT'] = "'YES'";
+    console.log(params);
+
+    var self = this;
+    $.get('http://ssd.jpl.nasa.gov/horizons_batch.cgi', params)
+      .done(function(data){next.done(self.process(data));});
+  };
+  
+  this.process = function(data) {
     console.log(data);
-    console.log(eph);
-    console.log(target);
-  }
-  
-  return target;
-}
+    this.running = false;
+    this.run();
+  };
+};
 
 function addSun(coords) {
   sunCoords = coords;
@@ -198,7 +253,7 @@ function updatePlot(e) {
   console.log(e);
   if (e.target.id == 'elevation-date') {
     clearSun();
-    getIMCCE('sun', 'p', addSun);
+    //getIMCCE('sun', 'p', addSun);
     clearTargets();
   } else if ((e.target.id == 'elevation-update-location-button')
 	     || (e.target.classList.contains('elevation-observatory'))) {
@@ -235,7 +290,7 @@ function loadTargets() {
     }
     var row = lines[i].split(',');
     if (row.length == 2) {
-      getIMCCE(row[0], row[1], newTarget);
+      //getIMCCE(row[0], row[1], newTarget);
     } else if (row.length == 4) {
       newTarget({
 	name: row[0],
