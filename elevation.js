@@ -2,6 +2,8 @@ $(document).ready(
   function() {
     eph = new IMCCE();
     plot = new Plot();
+    $('#elevation-date').val(moment.tz().format().substr(0, 10));
+    $('#elevation-add-target-button').click(addTargetCallback);
     $('#elevation-load-button').click(loadTargets);
     $('#elevation-reset-button').click(plot.clearTargets);
     $('.elevation-observatory').click(setLocation);
@@ -112,8 +114,15 @@ class Plot {
   }
 }
 
+/**********************************************************************/
+function addTargetCallback(e) {
+  var name = $('#elevation-add-target-name').val();
+  var type = $('#elevation-add-target-type').val();
+  eph.get(name, type, newTarget);
+}
+
+/**********************************************************************/
 function updateCallback(e) {
-  console.log(e);
   if (e.target.id == 'elevation-date') {
     eph.get('sun', 'p', function(data){plot.updateSun(data);});
     plot.clearTargets();
@@ -134,6 +143,7 @@ function updateCallback(e) {
   }
 }
 
+/**********************************************************************/
 class IMCCE {
   get(name, type, done) {
     var date = getDate();
@@ -261,6 +271,7 @@ function generateAltAz(coords) {
   };
 }
 
+/**********************************************************************/
 function setLocation(e) {
   $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
   $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
@@ -268,6 +279,7 @@ function setLocation(e) {
   updatePlot(e);
 }
 
+/**********************************************************************/
 function loadTargets() {
   plot.clearTargets();
   var lines = $('#elevation-target-list').val().split('\n');
@@ -289,21 +301,22 @@ function loadTargets() {
   }
 }
 
-function newTarget(target) {
+/**********************************************************************/
+function newTarget(t) {
   var tbody = $('#elevation-target-table tbody');
   var row = $('<tr>');
 
-  row.append($('<td>').append(target.name));
-  row.append($('<td>').append(rad2hr(target.ra).toFixed(1)));
-  row.append($('<td>').append(rad2deg(target.dec).toFixed(1)));
+  row.append($('<td>').append(t.name));
+  row.append($('<td>').append(rad2hr(t.ra).toFixed(1)));
+  row.append($('<td>').append(rad2deg(t.dec).toFixed(1)));
 
-  if ('mv' in target) {
-    row.append($('<td>').append(target.mv.toFixed(1)));
-    row.append($('<td>').append(target.delta.toFixed(2)));
-    row.append($('<td>').append(target.ddot.toFixed(1)));
-    row.append($('<td>').append(target.phase.toFixed(0)));
-    row.append($('<td>').append(target.elong.toFixed(0)));
-    row.append($('<td>').append(target.motion.toFixed(0)));
+  if ('mv' in t) {
+    row.append($('<td>').append(t.mv.toFixed(1)));
+    row.append($('<td>').append(t.delta.toFixed(2)));
+    row.append($('<td>').append(t.ddot.toFixed(1)));
+    row.append($('<td>').append(t.phase.toFixed(0)));
+    row.append($('<td>').append(t.elong.toFixed(0)));
+    row.append($('<td>').append(t.motion.toFixed(0)));
   } else {
     for (var i=0; i<6; i++) {
       row.append($('<td>'));
@@ -311,5 +324,5 @@ function newTarget(target) {
   }
 
   tbody.append(row);
-  plotTarget(target);
+  plot.target(t);
 }
