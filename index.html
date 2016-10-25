@@ -38,6 +38,8 @@
         height: 3em;
         overflow-y: auto;
       }
+      a:link { color: #red; }
+      a:visited { color: #cccccc; }
     </style>
   </head>
   <body>
@@ -109,19 +111,34 @@
     
     <div class="box">
       <h2>Target input</h2>
+      <ul>
+	<li>Columns: Target, Type, RA (decimal hr), Dec (decimal deg), Notes.</li>
+	<li>Type: c, a, p, f for comet, asteroid, planet, or fixed.</li>
+	<li>RA and Dec is ignored for Solar System targets.</li>
+      </ul>
+      <p>Comet names are from the IMCCE <a href="ftp://ftp.imcce.fr/pub/databases/cometpro/COMNAME.csv">comet database</a>.</p>
+
       <textarea rows="20" cols="72" id="elevation-target-list">
-# type = c, a, p, f for comet, asteroid, planet, or fixed
-# - Use all four columns for fixed targets,
-# - Use only the first two for Solar System targets.
-#
-# Some of the newer comets are not in the IMCCE database.  For these
-# you will need to manually enter the RA and Dec for your date.
-#
-# Target, type, RA (hr), Dec (deg)
-2P,c
-6P,c
-C/2012 K1,c
-C/2013 US10,c
+# Target, Type, RA (decimal hr), Dec (decimal deg), Notes
+2P,c,,,V=16 color
+6P,c,,,V=14 color
+10P,c,,,V=19 r
+22P,c,,,V=17 color
+41P,c,,,V=18 r
+53P,c,,,V=16 color
+56P,c,,,V=16 color
+87P,c,,,V=23 r
+88P,c,,,V=20 r
+C/2011 KP36,c,,,V=14 color
+C/2012 K1,c,,,V=19 r
+C/2013 US10,c,,,V=16 color
+C/2015 YY6,c,,,V=16 color (YY6 == VL62)
+C/2015 V2,c,,,V=13 OH+color
+
+# tough twilight comets
+C/2013 A1,c,,,V=22 r
+C/2014 Q2,c,,,V=20 r
+C/2016 M1,c,,,V=18 r
 </textarea><br>
       <button id="elevation-reset-button">Reset</button>
       <button id="elevation-load-button">Plot targets</button><br>

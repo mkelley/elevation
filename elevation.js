@@ -285,18 +285,27 @@ function loadTargets() {
   var lines = $('#elevation-target-list').val().split('\n');
 
   for (var i in lines) {
-    if (lines[i].startsWith('#')) {
+    if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
       continue;
     }
+
     var row = lines[i].split(',');
-    if (row.length == 2) {
-      eph.get(row[0], row[1], newTarget);
-    } else if (row.length == 4) {
+    if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
+      error("Bad row length: " + lines[i])
+      continue;
+    }
+
+    var delay = 0;
+    if (row[1] == 'f') {
       newTarget({
 	name: row[0],
-	  ra: hr2rad(parseFloat(row[2])),
-	  dec: deg2rad(parseFloat(row[3]))
+	ra: hr2rad(parseFloat(row[2])),
+	dec: deg2rad(parseFloat(row[3]))
       });
+    } else {
+      setTimeout(function(name, type, done) { eph.get(name, type, done); },
+		 delay * 300, row[0], row[1], newTarget);
+      delay++;
     }
   }
 }
