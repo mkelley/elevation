@@ -54,6 +54,7 @@
       <table id="elevation-target-table" style="table">
 	<thead>
 	  <tr>
+	    <th></th>
 	    <th>Target</th>
 	    <th>RA (hr)</th>
 	    <th>Dec (&deg;)</th>
@@ -74,7 +75,7 @@
 	      <option value="c" selected>Comet</option>
 	      <option value="p">Planet</option>
 	    </select>
-	    <button id="elevation-add-target-button">Add target</button>
+	    <button id="elevation-add-target-button">Add moving target</button>
 	  </td>
 	</tfoot>
       </table>
@@ -125,41 +126,155 @@ C/2013 US10,c
       <button id="elevation-reset-button">Reset</button>
       <button id="elevation-load-button">Plot targets</button><br>
     </div>
-    <div class="box">
-      <h2>Pre-computed RA, Dec for some comets</h2>
-      
-      <select id="target-set-date">
-	<option value="20170115">2017-01-15</option>
-	<option value="20170215">2017-02-15</option>
-	<option value="20170315">2017-03-15</option>
-	<option value="20170415">2017-04-15</option>
-	<option value="20170515">2017-05-15</option>
-	<option value="20170615">2017-06-15</option>
-	<option value="20170715">2017-07-15</option>
-      </select>
-      
-      <select id="target-set-number">
-	<option value="0">0</option>
-	<option value="1">1</option>
-	<option value="2">2</option>
-      </select>
 
-      <button id="target-set-load">Load targets</button>
+    <div class="box">
+      <h2>Pre-defined target lists</h2>
       
-      <p>Select date and set, then [Load targets].</p>
-      <table>
-	<tr><th>Set 0</th>                      <th>Set 1</th><th>Set 2</th></tr>
-	<tr><td>2P/Encke</td>                   <td>67P/G-C</td><td>C/2013 X1</td></tr>
-	<tr><td>6P/d'Arrest</td>                <td>71P/Clark</td><td>C/2014 Q2</td></tr>
-	<tr><td>9P/Tempel 1</td>                <td>73P/SW3 B</td><td>C/2015 V2</td></tr>
-	<tr><td>10P/Tempel 2</td>               <td>73P/SW3 C</td><td>C/2015 VL62</td></tr>
-	<tr><td>15P/Finlay</td>                 <td>81P/Wild 2</td><td>C/2016 M1</td></tr>
-	<tr><td>19P/Borrelly</td>               <td>88P/Howell</td><td></td></tr>
-	<tr><td>22P/Kopff</td>                  <td>103P/Hartley 2</td><td></td></tr>
-	<tr><td>41P/Tuttle-Giacobini-Kresak</td><td>C/2012 K1</td><td></td></tr>
-	<tr><td>45P/Honda-Mrkos-Pajdusakova</td><td>C/2013 A1</td><td></td></tr>
-	<tr><td>46P/Wirtanen</td>               <td>C/2013 US10</td><td></td></tr>
-      </table>
+      <p>
+	Cometary Orbital Trends
+	<button class="elevation-target-set-button"
+		data-targets="2P,c
+6P,c
+9P,c
+10P,c
+15P,c
+19P,c
+22P,c
+46P,c
+67P,c
+71P,c
+73P-C,c
+73P-B,c
+81P,c
+88P,c
+103P,c">
+	  Spitzer short-period
+	</button>,
+	<button class="elevation-target-set-button"
+		data-targets="C/2012 K1,c
+C/2013 A1,c
+C/2013 US10,c
+C/2013 X1,c
+C/2014 Q2,c
+#C/2014 Q3,c
+C/2015 V2,c
+C/2015 YY6,c
+C/2016 M1,c">
+	  Spitzer Oort-cloud
+	</button>
+      </p>
+
+      <p>
+	<button class="elevation-target-set-button"
+		data-targets="41P,c
+45P,c
+46P,c">
+	  Close approachers
+	</button>
+      </p>
+
+      <p>
+	<button class="elevation-target-set-button"
+		data-targets="2P,c
+4P,c
+15P,c
+21P,c
+37P,c
+41P,c
+45P,c
+46P,c
+62P,c
+64P,c
+67P,c
+68P,c
+71P,c
+73P,c
+87P,c
+88P,c
+115P,c
+141P,c
+213P,c
+260P,c">
+	  Fegea SSO16
+	</button>
+      </p>
+
+      <p>
+	<button class="elevation-target-set-button"
+		data-targets="29P,c
+41P,c
+45P,c
+53P,c
+65P,c
+71P,c
+81P,c
+C/2011 KP36,c
+C/2013 X1,c
+C/2014 S2,c
+C/2014 W2,c
+C/2015 F4,c
+C/2015 O1,c
+C/2015 V2,c
+C/2015 YY6,c
+C/2016 M1,c
+#9P,c
+#17P,c
+#67P,c
+#100P,c
+#117P,c
+#230P,c
+#252P,c
+#C/2010 S1,c
+#C/2011 J2,c
+#C/2012 K1,c
+#C/2013 A1,c
+#C/2013 US10,c
+#C/2014 N3,c
+#C/2014 Q2,c">
+	  Protopapa ice
+	</button>
+      </p>
+
+      <p>
+	HB filter standards:
+	<button class="elevation-target-set-button"
+		data-targets="3379,f, 0.61,15.23
+6815,f, 1.15, 9.73
+14951,f, 2.41,10.61
+19712,f, 3.17,-1.69
+26912,f, 4.26, 8.89
+31331,f, 4.91, 0.47
+37112,f, 5.60,-0.78">
+	  0 to 6 hr
+	</button>
+	<button class="elevation-target-set-button"
+		data-targets="52266,f, 7.01,-5.83
+68099,f, 8.19, 9.82
+72526,f, 8.56,-0.31
+74280,f, 8.72, 3.40
+89688,f,10.35, 2.29
+97991,f,11.27,-3.47">
+	  6 to 12 hr
+	</button>
+	<button class="elevation-target-set-button"
+		data-targets="120086,f,13.79,-2.44
+129956,f,14.76, 0.72
+149363,f,16.57,-6.14
+154445,f,17.09,-0.89
+164852,f,18.04,20.83">
+	  12 to 18 hr
+	</button>
+	<button class="elevation-target-set-button"
+		data-targets="170783,f,18.52, 4.63
+187350,f,19.83,-1.10
+191263,f,20.14,10.73
+205130,f,21.56,-9.66
+209008,f,22.00, 6.72
+219188,f,23.23, 5.00">
+	  18 to 24 hr
+	</button>
+      </p>
+
       
     </div>
 

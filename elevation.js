@@ -9,7 +9,7 @@ $(document).ready(
     $('.elevation-observatory').click(setLocation);
     $('#elevation-date').on('change', updateCallback);
     $('#elevation-update-location-button').click(updateCallback);
-    $('#target-set-load').click(loadTargetSet);
+    $('.elevation-target-set-button').click(loadTargetSetButton);
   }
 );
 
@@ -306,6 +306,7 @@ function newTarget(t) {
   var tbody = $('#elevation-target-table tbody');
   var row = $('<tr>');
 
+  row.append($('<td>').append('<input type="checkbox">'));
   row.append($('<td>').append(t.name));
   row.append($('<td>').append(rad2hr(t.ra).toFixed(1)));
   row.append($('<td>').append(rad2deg(t.dec).toFixed(1)));
