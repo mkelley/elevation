@@ -10,6 +10,7 @@ $(document).ready(
     $('#elevation-date').on('change', updateCallback);
     $('#elevation-update-location-button').click(updateCallback);
     $('.elevation-target-set-button').click(loadTargetSetButton);
+    eph.get('sun', 'p', function(data){plot.updateSun(data);});
   }
 );
 
@@ -276,7 +277,7 @@ function setLocation(e) {
   $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
   $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
   $('#elevation-timezone').val(e.target.dataset.timezone);
-  updatePlot(e);
+  updateCallback(e);
 }
 
 /**********************************************************************/
