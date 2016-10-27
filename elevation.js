@@ -17,7 +17,6 @@ $(document).ready(
 var DEBUG = false;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
-var sunCoords;
 var eph;
 var plot;
 
@@ -56,8 +55,10 @@ class Plot {
   updateSun(s) {
     if (s === undefined) {
       s = this.sun;
+    } else {
+      this.sun = s;
     }
-    
+
     var altaz = generateAltAz(s);
 
     var update = { shapes: [] };
@@ -124,13 +125,16 @@ function addTargetCallback(e) {
 
 /**********************************************************************/
 function updateCallback(e) {
+  if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
+    eph.get('sun', 'p', function(data){ console.log('updatecallback.sun', data); plot.updateSun(data); });
+  }
+  
   if (e.target.id == 'elevation-date') {
-    eph.get('sun', 'p', function(data){plot.updateSun(data);});
     plot.clearTargets();
   } else if ((e.target.id == 'elevation-update-location-button')
 	     || (e.target.classList.contains('elevation-observatory'))) {
     plot.updateSun();
-    
+
     var targets = $('.elevation-target');
     if (targets.length > 0) {
       var coords = targets.map(function(i, x) {
@@ -211,7 +215,8 @@ class IMCCE {
     target.mv = parseFloat(eph[9]);
     target.phase = parseFloat(eph[10]);
     target.elong = parseFloat(eph[11]);
-    target.motion = Math.sqrt(parseFloat(eph[12])**2 + parseFloat(eph[13])**2) * 60;
+    target.motion = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
+			      + Math.pow(parseFloat(eph[13]), 2)) * 60;
     target.ddot = parseFloat(eph[14]);
 
     if (DEBUG) {
