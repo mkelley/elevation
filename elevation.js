@@ -166,10 +166,16 @@ class IMCCE {
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done(function(data){self.process_votable(data, done);});
+      .done(function(data){self.processVotable(data, done);});
   }
 
-  process_votable(data, done) {
+  getDataByField(columns, fields, fieldName) {
+    var i = fields.index($('FIELD[name="' + fieldName + '"]')[0]);
+    console.log(fieldName, i, fields[i], columns[i], columns[i].textContent);
+    return columns[i].textContent;
+  }
+
+  processVotable(data, done) {
     var table = $(data);
 
     var status = table.find('INFO[name="QUERY_STATUS"]');
@@ -180,25 +186,30 @@ class IMCCE {
 
     var target = {};
     target.name = table.find('PARAM[ID="targetname"]').attr('value');
+    console.log(target.name);
 
-    var cols = table.find('TD'); // WORKING HERE
-    console.log(cols);
-    
-    var c = cols[2].text().split(" ").map(parseFloat);
+    var fields = table.find('FIELD');
+    var cols = table.find('TD');
+
+    var c = this.getDataByField(cols, fields, 'RA')
+	.split(" ")
+	.map(parseFloat);
     target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
-
-    c = cols[3].text();
+    console.log(target.ra);
+    
+    var c = this.getDataByField(cols, fields, 'DEC');
     var sgn = -1 ? (c[0] == '-') : 1;
     c = c.substr(1).split(" ").map(parseFloat);
     target.dec = deg2rad(c[0] + c[1] / 60 + c[2] / 3600);
 
-    target.delta = parseFloat(cols[4].text());
-    target.mv = parseFloat(cols[5].text());
-    target.phase = parseFloat(cols[6].text());
-    target.elong = parseFloat(cols[7].text());
-    target.motion = Math.sqrt(parseFloat(cols[8].text())**2
-			      + parseFloat(cols[9].text())**2) * 60;
-    target.ddot = parseFloat(cols[10].text());
+    target.delta = parseFloat(this.getDataByField('Distance'));
+    target.mv = parseFloat(this.getDataByField('Mv'));
+    target.phase = parseFloat(this.getDataByField('phase'));
+    target.elong = parseFloat(this.getDataByField('elongation'));
+    var dra = parseFloat(this.getDataByField('dRAcosDEC'));
+    var ddec = parseFloat(this.getDataByField('dDEC'));
+    target.motion = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
+    target.ddot = parseFloat(this.getDataByField('dist_dot'));
 
     if (DEBUG) {
       console.log(data);
@@ -209,7 +220,7 @@ class IMCCE {
     done(target);
   }
 
-  process_txt(data, done) {
+  processTXT(data, done) {
     var lines = data.split('\n');
 
     var target = {};
