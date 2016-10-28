@@ -20,10 +20,12 @@ var sunCoords;
 var eph;
 var plot;
 
+/**********************************************************************/
 function error(msg) {
   $('#elevation-error').prepend('<p>' + msg + '</p>');
 }
 
+/**********************************************************************/
 class Plot {
   constructor() {
     var layout = {
@@ -155,32 +157,54 @@ class IMCCE {
     var params = {};
     params['-name'] = type + ':' + name;
     params['-ep'] = date.toISOString();
-    params['-mime'] = 'text';
+    params['-mime'] = 'votable';
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done(function(data){self.process(data, done);});
+      .done(function(data){self.process_votable(data, done);});
   }
 
-  process(data, done) {
-  /* Example IMCCE data:
-# Flag: 1
-# Ticket: 1474378574835
-# Solar system object ephemeris by IMCCE
-# Comet: P/Encke  (2P)
-# Source: numerical integration
-# Diameter (km): 0.00
-# CEU (arcsec): 0.00000000E+00
-# CEU rate (arcsec/d): 0.24566182E+07
-# Planetary theory INPOP13C
-# Astrometric J2000 coordinates
-# Frame center: geocenter
-# Relativistic perturbations, coordinate system 0
-# Equatorial coordinates (RA, DEC)
-#         Date UTC              R.A            Dec.          Distance     V.Mag   Phase   Elong.  muRAcosDE     muDE      Dist_dot
-#             h  m  s       h  m  s         o  '  "            AU                   o        o      "/min      "/min       km/s
-  2016-09-14T00:00:00.00    0 47  8.02777 +16  5  3.5421    1.629841562   17.60   10.46   152.44 -0.8100E+00 -0.1066E+00  -24.79021
-*/
+  process_votable(data, done) {
+    var table = $(data);
+
+    var status = table.find('INFO[name="QUERY_STATUS"]');
+    if (status.attr('value') == 'ERROR') {
+      error(status.text());
+      return;
+    }
+
+    var target = {};
+    target.name = table.find('PARAM[ID="targetname"]').attr('value');
+
+    var cols = table.find('TD'); // WORKING HERE
+    console.log(cols);
+    
+    var c = cols[2].text().split(" ").map(parseFloat);
+    target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
+
+    c = cols[3].text();
+    var sgn = -1 ? (c[0] == '-') : 1;
+    c = c.substr(1).split(" ").map(parseFloat);
+    target.dec = deg2rad(c[0] + c[1] / 60 + c[2] / 3600);
+
+    target.delta = parseFloat(cols[4].text());
+    target.mv = parseFloat(cols[5].text());
+    target.phase = parseFloat(cols[6].text());
+    target.elong = parseFloat(cols[7].text());
+    target.motion = Math.sqrt(parseFloat(cols[8].text())**2
+			      + parseFloat(cols[9].text())**2) * 60;
+    target.ddot = parseFloat(cols[10].text());
+
+    if (DEBUG) {
+      console.log(data);
+      console.log(eph);
+      console.log(target);
+    }
+  
+    done(target);
+  }
+
+  process_txt(data, done) {
     var lines = data.split('\n');
 
     var target = {};
@@ -223,10 +247,12 @@ class IMCCE {
   }
 }
 
+/**********************************************************************/
 function getDate() {
   return moment.tz($('#elevation-date').val(), $('#elevation-timezone').val());
 }
 
+/**********************************************************************/
 function getLocation() {
   // rad
   var lat = deg2rad(parseFloat($('#elevation-latitude').val()));
@@ -234,11 +260,13 @@ function getLocation() {
   return { lat: lat, lon: lon };
 }
 
+/**********************************************************************/
 function getLST0(date, loc) {
   // rad
   return ct2lst(date, loc.lon);
 }
 
+/**********************************************************************/
 function generateAltAz(coords) {
   // ra, dec in radians
   var date = getDate();
