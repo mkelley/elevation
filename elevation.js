@@ -9,14 +9,14 @@ $(document).ready(
     $('.elevation-observatory').click(setLocation);
     $('#elevation-date').on('change', updateCallback);
     $('#elevation-update-location-button').click(updateCallback);
-    $('#target-set-load').click(loadTargetSet);
+    $('.elevation-target-set-button').click(loadTargetSetButton);
+    eph.get('sun', 'p', function(data){plot.updateSun(data);});
   }
 );
 
 var DEBUG = false;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
-var sunCoords;
 var eph;
 var plot;
 
@@ -57,8 +57,10 @@ class Plot {
   updateSun(s) {
     if (s === undefined) {
       s = this.sun;
+    } else {
+      this.sun = s;
     }
-    
+
     var altaz = generateAltAz(s);
 
     var update = { shapes: [] };
@@ -125,13 +127,16 @@ function addTargetCallback(e) {
 
 /**********************************************************************/
 function updateCallback(e) {
+  if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
+    eph.get('sun', 'p', function(data){ console.log('updatecallback.sun', data); plot.updateSun(data); });
+  }
+  
   if (e.target.id == 'elevation-date') {
-    eph.get('sun', 'p', function(data){plot.updateSun(data);});
     plot.clearTargets();
   } else if ((e.target.id == 'elevation-update-location-button')
 	     || (e.target.classList.contains('elevation-observatory'))) {
     plot.updateSun();
-    
+
     var targets = $('.elevation-target');
     if (targets.length > 0) {
       var coords = targets.map(function(i, x) {
@@ -234,7 +239,8 @@ class IMCCE {
     target.mv = parseFloat(eph[9]);
     target.phase = parseFloat(eph[10]);
     target.elong = parseFloat(eph[11]);
-    target.motion = Math.sqrt(parseFloat(eph[12])**2 + parseFloat(eph[13])**2) * 60;
+    target.motion = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
+			      + Math.pow(parseFloat(eph[13]), 2)) * 60;
     target.ddot = parseFloat(eph[14]);
 
     if (DEBUG) {
@@ -304,7 +310,7 @@ function setLocation(e) {
   $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
   $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
   $('#elevation-timezone').val(e.target.dataset.timezone);
-  updatePlot(e);
+  updateCallback(e);
 }
 
 /**********************************************************************/
@@ -313,18 +319,27 @@ function loadTargets() {
   var lines = $('#elevation-target-list').val().split('\n');
 
   for (var i in lines) {
-    if (lines[i].startsWith('#')) {
+    if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
       continue;
     }
+
     var row = lines[i].split(',');
-    if (row.length == 2) {
-      eph.get(row[0], row[1], newTarget);
-    } else if (row.length == 4) {
+    if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
+      error("Bad row length: " + lines[i])
+      continue;
+    }
+
+    var delay = 0;
+    if (row[1] == 'f') {
       newTarget({
 	name: row[0],
-	  ra: hr2rad(parseFloat(row[2])),
-	  dec: deg2rad(parseFloat(row[3]))
+	ra: hr2rad(parseFloat(row[2])),
+	dec: deg2rad(parseFloat(row[3]))
       });
+    } else {
+      setTimeout(function(name, type, done) { eph.get(name, type, done); },
+		 delay * 300, row[0], row[1], newTarget);
+      delay++;
     }
   }
 }
@@ -334,6 +349,7 @@ function newTarget(t) {
   var tbody = $('#elevation-target-table tbody');
   var row = $('<tr>');
 
+  row.append($('<td>').append('<input type="checkbox">'));
   row.append($('<td>').append(t.name));
   row.append($('<td>').append(rad2hr(t.ra).toFixed(1)));
   row.append($('<td>').append(rad2deg(t.dec).toFixed(1)));

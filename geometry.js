@@ -64,7 +64,7 @@ function hadec2altaz(ha, dec, lat) {
   var alt = [];
   var az = [];
   for (i=0; i<ha.length; i++) {
-    r = Math.sqrt(x[i]**2 + y[i]**2);
+    r = Math.sqrt(Math.pow(x[i], 2) + Math.pow(y[i], 2));
     alt.push(Math.atan2(z[i], r));
     az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
   }
@@ -98,7 +98,7 @@ function ct2lst(date0, lon) {
   d = Math.round(d - 1.0) + 0.5; // UT date?
   var y = d / 36525;  // years
   var th0 = 280.46061837 + 360.98564736629 * d
-      + 0.000387933 * y**2 - y**3 / 38710000.0;
+      + 0.000387933 * Math.pow(y, 2) - Math.pow(y, 3) / 38710000.0;
   th0 = deg2rad(th0 % 360);
   var lst = (th0 + lon - tzoff) % (2 * Math.PI);
   return lst;
