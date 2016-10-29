@@ -14,7 +14,7 @@ $(document).ready(
   }
 );
 
-var DEBUG = false;
+var DEBUG = true;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
 var eph;
@@ -169,9 +169,11 @@ class IMCCE {
       .done(function(data){self.processVotable(data, done);});
   }
 
-  getDataByField(columns, fields, fieldName) {
-    var i = fields.index($('FIELD[name="' + fieldName + '"]')[0]);
-    console.log(fieldName, i, fields[i], columns[i], columns[i].textContent);
+  getDataByField(table, fieldName) {
+    var fields = table.find('FIELD');
+    var columns = table.find('TD');
+    var field = table.find('FIELD[name="' + fieldName + '"]')[0];
+    var i = fields.index(field);
     return columns[i].textContent;
   }
 
@@ -186,30 +188,26 @@ class IMCCE {
 
     var target = {};
     target.name = table.find('PARAM[ID="targetname"]').attr('value');
-    console.log(target.name);
-
-    var fields = table.find('FIELD');
-    var cols = table.find('TD');
-
-    var c = this.getDataByField(cols, fields, 'RA')
-	.split(" ")
-	.map(parseFloat);
-    target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
-    console.log(target.ra);
     
-    var c = this.getDataByField(cols, fields, 'DEC');
+    var c = this.getDataByField(table, 'RA')
+	.split(/\s+/)
+	.map(parseFloat);
+    console.log(c);
+    target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
+    
+    var c = this.getDataByField(table, 'DEC');
     var sgn = -1 ? (c[0] == '-') : 1;
-    c = c.substr(1).split(" ").map(parseFloat);
+    c = c.substr(1).split(/\s+/).map(parseFloat);
     target.dec = deg2rad(c[0] + c[1] / 60 + c[2] / 3600);
 
-    target.delta = parseFloat(this.getDataByField('Distance'));
-    target.mv = parseFloat(this.getDataByField('Mv'));
-    target.phase = parseFloat(this.getDataByField('phase'));
-    target.elong = parseFloat(this.getDataByField('elongation'));
-    var dra = parseFloat(this.getDataByField('dRAcosDEC'));
-    var ddec = parseFloat(this.getDataByField('dDEC'));
+    target.delta = parseFloat(this.getDataByField(table, 'Distance'));
+    target.mv = parseFloat(this.getDataByField(table, 'Mv'));
+    target.phase = parseFloat(this.getDataByField(table, 'Phase'));
+    target.elong = parseFloat(this.getDataByField(table, 'Elongation'));
+    var dra = parseFloat(this.getDataByField(table, 'dRAcosDEC'));
+    var ddec = parseFloat(this.getDataByField(table, 'dDEC'));
     target.motion = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
-    target.ddot = parseFloat(this.getDataByField('dist_dot'));
+    target.ddot = parseFloat(this.getDataByField(table, 'dist_dot'));
 
     if (DEBUG) {
       console.log(data);
