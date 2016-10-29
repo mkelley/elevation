@@ -256,6 +256,18 @@ class IMCCE {
   processTXT(data, done) {
     var lines = data.split('\n');
 
+    var flag = parseInt(lines[0].split(/\s+/)[2]);
+    if (flag == -1) {
+      var msg = '';
+      for (var i in lines) {
+	if (lines[i][0] != '#') {
+	  msg += lines[i];
+	}
+      }
+      error(msg);
+      return;
+    }
+    
     var target = {};
     target.name = lines[3].substr(2);
 
