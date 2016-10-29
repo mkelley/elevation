@@ -3,8 +3,38 @@ $(document).ready(
     eph = new IMCCE();
     plot = new Plot();
     table = $('#elevation-target-table').DataTable({
-      'searching': false,
-      'paging': false,
+      searching: false,
+      paging: false,
+      columns: [
+        { data: "checkbox" },
+        {
+	  data: "target",
+	  type: "natural"
+	},
+        { data: "ra" },
+        { data:
+	  {
+	    _: "dec.display",
+	    sort: "dec.degree"
+	  },
+	  type: "numeric"
+	},
+        { data: "mv" },
+        { data: "delta" },
+        { data: "ddot" },
+        { data: "phase" },
+        { data: "elong" },
+        { data: "mu" },
+        { data:
+	  {
+            _:    "transit.display",
+            sort: "transit.hour",
+	  },
+	  type: "numeric"
+        },
+        { data: "uptime" },
+        { data: "darktime" }
+      ]
     });
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('#elevation-add-target-button').click(addTargetCallback);
@@ -98,7 +128,6 @@ class Plot {
       }
     }
     Array.prototype.push.apply(update.shapes, this.airmassGuides());
-    console.log(update.shapes);
 
     this.clearSun();
     Plotly.relayout('elevation-plot', update);
@@ -227,7 +256,6 @@ class IMCCE {
     var c = this.getDataByField(doc, 'RA')
 	.split(/\s+/)
 	.map(parseFloat);
-    console.log(c);
     target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
     
     var c = this.getDataByField(doc, 'DEC');
@@ -241,7 +269,7 @@ class IMCCE {
     target.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
     var dra = parseFloat(this.getDataByField(doc, 'dRAcosDEC'));
     var ddec = parseFloat(this.getDataByField(doc, 'dDEC'));
-    target.motion = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
+    target.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
     target.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
 
     if (DEBUG) {
@@ -295,8 +323,8 @@ class IMCCE {
     target.mv = parseFloat(eph[9]);
     target.phase = parseFloat(eph[10]);
     target.elong = parseFloat(eph[11]);
-    target.motion = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
-			      + Math.pow(parseFloat(eph[13]), 2)) * 60;
+    target.mu = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
+			  + Math.pow(parseFloat(eph[13]), 2)) * 60;
     target.ddot = parseFloat(eph[14]);
 
     if (DEBUG) {
@@ -402,40 +430,46 @@ function loadTargets() {
 
 /**********************************************************************/
 function newTarget(t) {
-  var row = [];
-
   var altaz = generateAltAz(t);
   t.ct = altaz.ct;
   t.alt = altaz.alt;
   t.az = altaz.az;
 
-  row.push('<input type="checkbox">');
-  row.push(t.name);
-  row.push(rad2hr(t.ra).toFixed(1));
-  row.push(rad2deg(t.dec).toFixed(1));
+  var row = {};
+
+  row.checkbox = '<input type="checkbox">';
+  row.target = t.name;
+  row.ra = hr2hm(rad2hr(t.ra));
+  row.dec = {
+    display: deg2dm(rad2deg(t.dec), 2),
+    degree: rad2deg(t.dec)
+  };
 
   if ('mv' in t) {
-    row.push(t.mv.toFixed(1));
-    row.push(t.delta.toFixed(2));
-    row.push(t.ddot.toFixed(1));
-    row.push(t.phase.toFixed(0));
-    row.push(t.elong.toFixed(0));
-    row.push(t.motion.toFixed(0));
-  } else {
-    for (var i=0; i<6; i++) {
-      row.push('');
-    }
+    row.mv = t.mv.toFixed(1);
+    row.delta = t.delta.toFixed(2);
+    row.ddot = t.ddot.toFixed(1);
+    row.phase = t.phase.toFixed(0);
+    row.elong = t.elong.toFixed(0);
+    row.mu = t.mu.toFixed(0);
   }
 
-  var test = t.alt.map(function(x) { return (x > 30); });
+  var test = t.alt.indexOf(Math.max.apply(null, t.alt));
+  var transit = t.ct[test];
+  row.transit = {
+    display: hr2hm(transit),
+    hour: transit
+  };
+  
+  test = t.alt.map(function(x) { return (x > 30); });
   var uptime = 24 / ctSteps * test.reduce(sum, 0);
-  row.push(uptime.toFixed(1));
+  row.uptime = hr2hm(uptime);
 
-  var test = t.alt.map(function(x, i) {
+  test = t.alt.map(function(x, i) {
     return (x > 30) * (plot.sun.alt[i] < -18);
   });
   var darktime = 24 / ctSteps * test.reduce(sum, 0);
-  row.push(darktime.toFixed(1));
+  row.darktime = hr2hm(darktime);
 
   table.row.add(row).draw();
   plot.target(t);

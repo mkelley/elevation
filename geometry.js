@@ -1,8 +1,40 @@
 function rad2hr(x) { return (x * 12 / Math.PI); }
 function rad2deg(x) { return (x * 180 / Math.PI); }
 function deg2rad(x) { return (x * Math.PI / 180); }
+function hr2hm(x) {
+  x = branchcut(24, 24)(x);
+  var hr = Math.floor(x).toFixed(0);
+  var m = ((x % 1) * 60).toFixed(0);
+  if (m == "60") {
+    hr = Math.floor(x + 1).toFixed(0);
+    m = "00";
+  }
+    
+  hr = '0'.repeat(2 - hr.length) + hr;
+  m = '0'.repeat(2 - m.length) + m;
+  return hr + ':' + m;
+}
+function deg2dm(x, size) {
+  var s = (x < 0)?'-':'+';
+  var deg = Math.floor(Math.abs(x)).toFixed(0);
+  var m = ((Math.abs(x) % 1) * 60).toFixed(0);
+  if (m == "60") {
+    deg = Math.floor(Math.abs(x) + 1).toFixed(0);
+    m = "00";
+  }
+
+  deg = s + '0'.repeat(size - deg.length) + deg;
+  m = '0'.repeat(2 - m.length) + m;
+  return deg + ':' + m;
+}
 function hr2rad(x) { return (x * Math.PI / 12); }
-function branchcut(cut, period) { return function(x) { y = x % period; return (y<cut)?(y):(y - period);}; }
+function branchcut(cut, period) {
+  return function(x) {
+    y = x % period;
+    y = (y < 0)?(y + period):(y);
+    return (y < cut)?(y):(y - period);
+  };
+}
 
 function findRise(thresh) {
   // Return a fuction that will find the time an object rises above
