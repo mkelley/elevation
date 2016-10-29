@@ -27,7 +27,7 @@ var table;
 
 /**********************************************************************/
 function error(msg) {
-  $('#elevation-error').prepend('<p>' + msg + '</p>');
+  $('#elevation-console').prepend('<p>' + msg + '</p>');
 }
 
 /**********************************************************************/
@@ -50,7 +50,7 @@ class Plot {
       },
       yaxis: {
 	title: 'Elevation (deg)',
-	range: [0, 90]
+	range: [10, 90]
       },
       margin: {
 	t: 10,
@@ -97,6 +97,8 @@ class Plot {
 	update.shapes.push(shape);
       }
     }
+    Array.prototype.push.apply(update.shapes, this.airmassGuides());
+    console.log(update.shapes);
 
     this.clearSun();
     Plotly.relayout('elevation-plot', update);
@@ -104,6 +106,27 @@ class Plot {
 
   clearSun() {
     Plotly.relayout('elevation-plot', {shapes:[]});
+  }
+
+  airmassGuides() {
+    // 19, 30, 50, 65 = 3, 2, 1.3, 1.1
+    var alt = [19, 30, 50];
+    var shapes = [];
+    for (var i in alt) {
+      shapes.push({
+        type: 'rect',
+	xref: 'paper',
+	x0: 0,
+	x1: 1,
+	yref: 'y',
+	y0: -90,
+	y1: alt[i],
+	fillcolor: '#e5a839',
+	opacity: 0.15,
+	line: { width: 0 }
+      });
+    }
+    return shapes;
   }
 
   target(t) {
