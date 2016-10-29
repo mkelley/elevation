@@ -6,6 +6,8 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="moment.min.js"></script>
     <script src="moment-timezone-with-data-2010-2020.min.js"></script>
+    <link rel="http://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+    <script src="http://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
     <style>
       body { 
         background: #2F2F2F;
@@ -27,6 +29,9 @@
 
       table {
         border-collapse: collapse;
+      }
+      table th {
+        font-size: small;
       }
       table, th, td {
         border: 1px solid #aaa;
@@ -58,7 +63,7 @@
 	<thead>
 	  <tr>
 	    <th></th>
-	    <th>Target</th>
+	    <th style="width: 12em;">Target</th>
 	    <th>RA (hr)</th>
 	    <th>Dec (&deg;)</th>
 	    <th>m<sub>V</sub></th>
@@ -66,9 +71,9 @@
 	    <th>d&Delta;/dt (km/s)</th>
 	    <th>Phase (&deg;)</th>
 	    <th>Elong. (&deg;)</th>
-	    <th>Motion (''/hr)</th>
-	    <th>&lt;2 airmasses</th>
-	    <th>and dark</th>
+	    <th>&mu; (''/hr)</th>
+	    <th>&lt;2 am (hr)</th>
+	    <th>and dark (hr)</th>
 	</thead>
 	<tbody>
 	</tbody>

@@ -2,6 +2,10 @@ $(document).ready(
   function() {
     eph = new IMCCE();
     plot = new Plot();
+    table = $('#elevation-target-table').DataTable({
+      'searching': false,
+      'paging': false,
+    });
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('#elevation-add-target-button').click(addTargetCallback);
     $('#elevation-load-button').click(loadTargets);
@@ -19,6 +23,7 @@ var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
 var eph;
 var plot;
+var table;
 
 /**********************************************************************/
 function error(msg) {
@@ -176,45 +181,45 @@ class IMCCE {
       .done(function(data){self.processTXT(data, done);});
   }
 
-  getDataByField(table, fieldName) {
-    var fields = table.find('FIELD');
-    var columns = table.find('TD');
-    var field = table.find('FIELD[name="' + fieldName + '"]')[0];
-    var i = fields.index(field);
+  getDataByField(doc, fieldName) {
+    var fields = doc.find('FIELD');
+    var columns = doc.find('TD');
+    var field = doc.find('FIELD[name="' + fieldName + '"]')[0];
+    var i = doc.index(field);
     return columns[i].textContent;
   }
 
   processVotable(data, done) {
-    var table = $(data);
+    var doc = $(data);
 
-    var status = table.find('INFO[name="QUERY_STATUS"]');
+    var status = doc.find('INFO[name="QUERY_STATUS"]');
     if (status.attr('value') == 'ERROR') {
       error(status.text());
       return;
     }
 
     var target = {};
-    target.name = table.find('PARAM[ID="targetname"]').attr('value');
+    target.name = doc.find('PARAM[ID="targetname"]').attr('value');
     
-    var c = this.getDataByField(table, 'RA')
+    var c = this.getDataByField(doc, 'RA')
 	.split(/\s+/)
 	.map(parseFloat);
     console.log(c);
     target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
     
-    var c = this.getDataByField(table, 'DEC');
+    var c = this.getDataByField(doc, 'DEC');
     var sgn = -1 ? (c[0] == '-') : 1;
     c = c.substr(1).split(/\s+/).map(parseFloat);
     target.dec = deg2rad(c[0] + c[1] / 60 + c[2] / 3600);
 
-    target.delta = parseFloat(this.getDataByField(table, 'Distance'));
-    target.mv = parseFloat(this.getDataByField(table, 'Mv'));
-    target.phase = parseFloat(this.getDataByField(table, 'Phase'));
-    target.elong = parseFloat(this.getDataByField(table, 'Elongation'));
-    var dra = parseFloat(this.getDataByField(table, 'dRAcosDEC'));
-    var ddec = parseFloat(this.getDataByField(table, 'dDEC'));
+    target.delta = parseFloat(this.getDataByField(doc, 'Distance'));
+    target.mv = parseFloat(this.getDataByField(doc, 'Mv'));
+    target.phase = parseFloat(this.getDataByField(doc, 'Phase'));
+    target.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
+    var dra = parseFloat(this.getDataByField(doc, 'dRAcosDEC'));
+    var ddec = parseFloat(this.getDataByField(doc, 'dDEC'));
     target.motion = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
-    target.ddot = parseFloat(this.getDataByField(table, 'dist_dot'));
+    target.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
 
     if (DEBUG) {
       console.log(data);
@@ -362,42 +367,41 @@ function loadTargets() {
 
 /**********************************************************************/
 function newTarget(t) {
-  var tbody = $('#elevation-target-table tbody');
-  var row = $('<tr>');
+  var row = [];
 
   var altaz = generateAltAz(t);
   t.ct = altaz.ct;
   t.alt = altaz.alt;
   t.az = altaz.az;
 
-  row.append($('<td>').append('<input type="checkbox">'));
-  row.append($('<td>').append(t.name));
-  row.append($('<td>').append(rad2hr(t.ra).toFixed(1)));
-  row.append($('<td>').append(rad2deg(t.dec).toFixed(1)));
+  row.push('<input type="checkbox">');
+  row.push(t.name);
+  row.push(rad2hr(t.ra).toFixed(1));
+  row.push(rad2deg(t.dec).toFixed(1));
 
   if ('mv' in t) {
-    row.append($('<td>').append(t.mv.toFixed(1)));
-    row.append($('<td>').append(t.delta.toFixed(2)));
-    row.append($('<td>').append(t.ddot.toFixed(1)));
-    row.append($('<td>').append(t.phase.toFixed(0)));
-    row.append($('<td>').append(t.elong.toFixed(0)));
-    row.append($('<td>').append(t.motion.toFixed(0)));
+    row.push(t.mv.toFixed(1));
+    row.push(t.delta.toFixed(2));
+    row.push(t.ddot.toFixed(1));
+    row.push(t.phase.toFixed(0));
+    row.push(t.elong.toFixed(0));
+    row.push(t.motion.toFixed(0));
   } else {
     for (var i=0; i<6; i++) {
-      row.append($('<td>'));
+      row.push('');
     }
   }
 
   var test = t.alt.map(function(x) { return (x > 30); });
   var uptime = 24 / ctSteps * test.reduce(sum, 0);
-  row.append($('<td>').append(uptime.toFixed(1)));
+  row.push(uptime.toFixed(1));
 
   var test = t.alt.map(function(x, i) {
     return (x > 30) * (plot.sun.alt[i] < -18);
   });
   var darktime = 24 / ctSteps * test.reduce(sum, 0);
-  row.append($('<td>').append(darktime.toFixed(1)));
+  row.push(darktime.toFixed(1));
 
-  tbody.append(row);
+  table.row.add(row).draw();
   plot.target(t);
 }
