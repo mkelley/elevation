@@ -329,6 +329,7 @@ function loadTargets() {
   plot.clearTargets();
   var lines = $('#elevation-target-list').val().split('\n');
 
+  var delay = 0;
   for (var i in lines) {
     if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
       continue;
@@ -340,7 +341,6 @@ function loadTargets() {
       continue;
     }
 
-    var delay = 0;
     if (row[1] == 'f') {
       newTarget({
 	name: row[0],
