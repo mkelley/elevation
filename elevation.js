@@ -26,6 +26,11 @@ function error(msg) {
 }
 
 /**********************************************************************/
+function sum(a, b) {
+  return a + b;
+}
+
+/**********************************************************************/
 class Plot {
   constructor() {
     var layout = {
@@ -62,6 +67,9 @@ class Plot {
     }
 
     var altaz = generateAltAz(s);
+    this.sun.ct = altaz.ct;
+    this.sun.alt = altaz.alt;
+    this.sun.az = altaz.az;
 
     var update = { shapes: [] };
     var alt = [-18, -6, 0];
@@ -94,12 +102,10 @@ class Plot {
   }
 
   target(t) {
-    console.log(t);
-    var altaz = generateAltAz(t);
     var data = {
       name: t.name,
-      x: altaz.ct,
-      y: altaz.alt,
+      x: t.ct,
+      y: t.alt,
       type: 'scatter',
       mode: 'lines',
       hoverinfo: 'name',
@@ -359,6 +365,11 @@ function newTarget(t) {
   var tbody = $('#elevation-target-table tbody');
   var row = $('<tr>');
 
+  var altaz = generateAltAz(t);
+  t.ct = altaz.ct;
+  t.alt = altaz.alt;
+  t.az = altaz.az;
+
   row.append($('<td>').append('<input type="checkbox">'));
   row.append($('<td>').append(t.name));
   row.append($('<td>').append(rad2hr(t.ra).toFixed(1)));
@@ -376,6 +387,16 @@ function newTarget(t) {
       row.append($('<td>'));
     }
   }
+
+  var test = t.alt.map(function(x) { return (x > 30); });
+  var uptime = 24 / ctSteps * test.reduce(sum, 0);
+  row.append($('<td>').append(uptime.toFixed(1)));
+
+  var test = t.alt.map(function(x, i) {
+    return (x > 30) * (plot.sun.alt[i] < -18);
+  });
+  var darktime = 24 / ctSteps * test.reduce(sum, 0);
+  row.append($('<td>').append(darktime.toFixed(1)));
 
   tbody.append(row);
   plot.target(t);
