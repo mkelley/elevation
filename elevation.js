@@ -14,7 +14,7 @@ $(document).ready(
   }
 );
 
-var DEBUG = true;
+var DEBUG = false;
 var ctSteps = 360;
 var ctStepSize = 2 * Math.PI / ctSteps;  // rad
 var eph;
@@ -162,11 +162,12 @@ class IMCCE {
     var params = {};
     params['-name'] = type + ':' + name;
     params['-ep'] = date.toISOString();
-    params['-mime'] = 'votable';
+    //params['-mime'] = 'votable';
+    params['-mime'] = 'text';
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done(function(data){self.processVotable(data, done);});
+      .done(function(data){self.processTXT(data, done);});
   }
 
   getDataByField(table, fieldName) {
