@@ -177,7 +177,7 @@ class Plot {
       traces.push(i);
     }
     Plotly.deleteTraces('elevation-plot', traces);
-    $('#elevation-target-table tbody').html('');
+    table.rows().remove().draw();
   }
 }
 
