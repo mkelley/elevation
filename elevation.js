@@ -452,6 +452,13 @@ function newTarget(t) {
     row.phase = t.phase.toFixed(0);
     row.elong = t.elong.toFixed(0);
     row.mu = t.mu.toFixed(0);
+  } else {
+    row.mv = '';
+    row.delta = '';
+    row.ddot = '';
+    row.phase = '';
+    row.elong = '';
+    row.mu = '';
   }
 
   var test = t.alt.indexOf(Math.max.apply(null, t.alt));
