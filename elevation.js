@@ -442,7 +442,7 @@ function loadTargets() {
       continue;
     }
 
-    if (row[1] == 'f') {
+    if (row[1].trim() == 'f') {
       newTarget({
 	name: row[0],
 	ra: hr2rad(string2angle(row[2])),
