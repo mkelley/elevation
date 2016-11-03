@@ -66,6 +66,49 @@ function sum(a, b) {
 }
 
 /**********************************************************************/
+function string2angle(s) {
+  /*
+    Possible strings:
+      1.2
+      01 23 45
+      1 23 45.6
+      1 2 3
+      1 2
+      12:34:56
+      12d34m56s
+      12d 34m 56s
+      12h 34m 56s
+   */
+
+  _s = s.trim();
+  var scales = [1, 60, 3600];
+  var sign;
+  if ((_s[0] == '-') || (_s[0] == '+')) {
+    sign = (_s[0] == '-')?(-1):(1);
+  } else {
+    sign = 1;
+  }
+
+  if (_s.includes('d')) {
+    _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
+  } else if (_s.includes('d')) {
+    _s = _s.replace('h', ' ').replace('m', ' ').replace('s', ' ');
+  }
+
+  if (_s.includes(':')) {
+    _s = s.replace(/:/g, ' ');
+  }
+  
+  var dms = _s.split(' ').map(parseFloat);
+  var angle = 0;
+  for (var i in dms) {
+    angle += dms[i] / scales[i];
+  }
+
+  return sign * angle;
+}
+
+/**********************************************************************/
 class Plot {
   constructor() {
     var layout = {
