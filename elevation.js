@@ -472,11 +472,15 @@ function newTarget(t) {
   var uptime = 24 / ctSteps * test.reduce(sum, 0);
   row.uptime = hr2hm(uptime);
 
-  test = t.alt.map(function(x, i) {
-    return (x > 30) * (plot.sun.alt[i] < -18);
-  });
-  var darktime = 24 / ctSteps * test.reduce(sum, 0);
-  row.darktime = hr2hm(darktime);
+  if (plot.sun === undefined) {
+    row.darktime = 0;
+  } else {
+    test = t.alt.map(function(x, i) {
+      return (x > 30) * (plot.sun.alt[i] < -18);
+    });
+    var darktime = 24 / ctSteps * test.reduce(sum, 0);
+    row.darktime = hr2hm(darktime);
+  }
 
   table.row.add(row).draw();
   plot.target(t);
