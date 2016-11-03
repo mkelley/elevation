@@ -125,14 +125,16 @@
     <div class="box">
       <h2>Target input</h2>
       <ul>
-	<li>Columns: Target, Type, RA (decimal hr), Dec (decimal deg), Notes.</li>
+	<li>Columns: Target, Type, RA, Dec, Notes.</li>
 	<li>Type: c, a, p, f for comet, asteroid, planet, or fixed.</li>
+	<li>RA and Dec may be any sensible format, e.g., -12, -12d 34m,
+	12h34m56s, 12:34:56.78.</li>
 	<li>RA and Dec is ignored for Solar System targets.</li>
       </ul>
       <p>Comet names are from the IMCCE <a href="ftp://ftp.imcce.fr/pub/databases/cometpro/COMNAME.csv">comet database</a>.</p>
 
       <textarea rows="20" cols="72" id="elevation-target-list">
-# Target, Type, RA (decimal hr), Dec (decimal deg), Notes
+# Target, Type, RA, Dec, Notes
 2P,c,,,V=16 color
 6P,c,,,V=14 color
 10P,c,,,V=19 r
@@ -289,42 +291,42 @@ C/2016 M1,c">
       </p>
 
       <p>
-	HB filter standards:
 	<button class="elevation-target-set-button"
-		data-targets="3379,f, 0.61,15.23
-6815,f, 1.15, 9.73
-14951,f, 2.41,10.61
-19712,f, 3.17,-1.69
-26912,f, 4.26, 8.89
-31331,f, 4.91, 0.47
-37112,f, 5.60,-0.78">
-	  0 to 6 hr
-	</button>
-	<button class="elevation-target-set-button"
-		data-targets="52266,f, 7.01,-5.83
-68099,f, 8.19, 9.82
-72526,f, 8.56,-0.31
-74280,f, 8.72, 3.40
-89688,f,10.35, 2.29
-97991,f,11.27,-3.47">
-	  6 to 12 hr
-	</button>
-	<button class="elevation-target-set-button"
-		data-targets="120086,f,13.79,-2.44
-129956,f,14.76, 0.72
-149363,f,16.57,-6.14
-154445,f,17.09,-0.89
-164852,f,18.04,20.83">
-	  12 to 18 hr
-	</button>
-	<button class="elevation-target-set-button"
-		data-targets="170783,f,18.52, 4.63
-187350,f,19.83,-1.10
-191263,f,20.14,10.73
-205130,f,21.56,-9.66
-209008,f,22.00, 6.72
-219188,f,23.23, 5.00">
-	  18 to 24 hr
+		data-targets="# HB filter B-type flux standards, Farnham et al. 2000
+  3379, f, 00:36:47.24, +15:13:54.5, V=5.89 a
+  6815, f, 01:08:55.72, +09:43:49.4, V=7.30
+ 14951, f, 02:24:48.92, +10:36:38.9, V=5.46
+ 19712, f, 03:10:18.03, -01:41:40.7, V=7.35
+ 26912, f, 04:15:31.93, +08:53:33.5, V=4.27
+ 31331, f, 04:54:50.63, +00:28:02.6, V=5.99
+ 37112, f, 05:36:03.50, -00:46:48.6, V=8.02 c
+ 52266, f, 07:00:21.05, -05:49:36.7, V=7.23
+ 68099, f, 08:11:16.56, +09:49:16.9, V=6.07
+ 72526, f, 08:33:25.29, -00:18:29.1, V=7.93
+ 74280, f, 08:43:13.48, +03:23:55.2, V=4.30 a
+ 89688, f, 10:21:01.97, +02:17:23.1, V=6.68 a,d
+ 97991, f, 11:16:11.55, -03:28:19.6, V=7.41 e
+120086, f, 13:47:19.13, -02:26:36.8, V=7.90 a
+129956, f, 14:45:30.26, +00:43:02.8, V=5.70
+149363, f, 16:34:28.22, -06:08:09.4, V=7.80
+154445, f, 17:05:32.14, -00:53:31.6, V=5.64
+164852, f, 18:02:22.98, +20:50:01.3, V=5.27
+170783, f, 18:31:04.35, +04:37:37.4, V=7.73
+187350, f, 19:49:33.40, -01:06:03.1, V=8.14 b
+191263, f, 20:08:38.16, +10:43:32.5, V=6.33
+205130, f, 21:33:35.23, -09:39:38.1, V=7.88 f
+209008, f, 22:00:07.78, +06:43:02.1, V=6.00
+219188, f, 23:14:00.48, +04:59:49.6, V=7.05
+
+# Notes:
+#  a)  Variable star  (delta m < 0.05)
+#  b)  Emission line star
+#  c)  Nearby bright star:   1.7 mag,   142'' E, 1518'' S.
+#  d)  Nearby star:   8.9 mag    200'' W, 220'' N.
+#  e)  Nearby bright star:   4.6 mag,   420'' E,  645'' S.
+#  f)  Nearby star:   9.2 mag,  325'' W,  156.5'' N.
+">
+	  HB filter standards
 	</button>
       </p>
 

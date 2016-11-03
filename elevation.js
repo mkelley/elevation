@@ -66,6 +66,48 @@ function sum(a, b) {
 }
 
 /**********************************************************************/
+function string2angle(s) {
+  /*
+    Possible strings:
+      1.2
+      01 23 45
+      1 23 45.6
+      1 2 3
+      1 2
+      12:34:56
+      12d34m56s
+      12d 34m 56s
+      12h 34m 56s
+   */
+
+  var _s = s.trim().match(/^([-+]?)(.+)/);
+  var sign = (_s[1] == '-')?-1:1;
+  _s = _s[2];  // now just the magnitude
+
+  if (_s.includes('d')) {
+    _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
+  } else if (_s.includes('h')) {
+    _s = _s.replace('h', ' ').replace('m', ' ').replace('s', ' ');
+  }
+
+  if (_s.includes(':')) {
+    _s = _s.replace(/:/g, ' ');
+  }
+
+  var dms = _s.trim().split(/\s+/).map(parseFloat);
+  var angle = 0;
+  var scales = [1, 60, 3600];
+  for (var i in dms) {
+    if (i > 2) {
+      break;
+    }
+    angle += dms[i] / scales[i];
+  }
+
+  return sign * angle;
+}
+
+/**********************************************************************/
 class Plot {
   constructor() {
     var layout = {
@@ -253,16 +295,8 @@ class IMCCE {
     var target = {};
     target.name = doc.find('PARAM[ID="targetname"]').attr('value');
     
-    var c = this.getDataByField(doc, 'RA')
-	.split(/\s+/)
-	.map(parseFloat);
-    target.ra = hr2rad(c[0] + c[1] / 60 + c[2] / 3600);
-    
-    var c = this.getDataByField(doc, 'DEC');
-    var sgn = -1 ? (c[0] == '-') : 1;
-    c = c.substr(1).split(/\s+/).map(parseFloat);
-    target.dec = deg2rad(c[0] + c[1] / 60 + c[2] / 3600);
-
+    target.ra = hr2rad(string2angle(this.getDataByField(doc, 'RA')));
+    target.dec = deg2rad(string2angle(this.getDataByField(doc, 'DEC')));
     target.delta = parseFloat(this.getDataByField(doc, 'Distance'));
     target.mv = parseFloat(this.getDataByField(doc, 'Mv'));
     target.phase = parseFloat(this.getDataByField(doc, 'Phase'));
@@ -310,14 +344,8 @@ class IMCCE {
     }
   
     var eph = lines[lines.length - 3].split(/\s+/);
-    target.ra = hr2rad(parseFloat(eph[2])
-		       + parseFloat(eph[3]) / 60
-		       + parseFloat(eph[4]) / 3600);
-
-    var sgn = -1 ? (eph[5][0] == '-') : 1;
-    target.dec = deg2rad(parseFloat(eph[5])
-			 + sgn * parseFloat(eph[6]) / 60
-			 + sgn * parseFloat(eph[7]) / 3600);
+    target.ra = hr2rad(string2angle(eph[2] + ' ' + eph[3] + ' ' + eph[4]));
+    target.dec = deg2rad(string2angle(eph[5] + ' ' + eph[6] + ' ' + eph[7]));
 
     target.delta = parseFloat(eph[8]);
     target.mv = parseFloat(eph[9]);
@@ -414,11 +442,11 @@ function loadTargets() {
       continue;
     }
 
-    if (row[1] == 'f') {
+    if (row[1].trim() == 'f') {
       newTarget({
 	name: row[0],
-	ra: hr2rad(parseFloat(row[2])),
-	dec: deg2rad(parseFloat(row[3]))
+	ra: hr2rad(string2angle(row[2])),
+	dec: deg2rad(string2angle(row[3]))
       });
     } else {
       setTimeout(function(name, type, done) { eph.get(name, type, done); },
