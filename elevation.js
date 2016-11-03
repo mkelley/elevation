@@ -80,14 +80,13 @@ function string2angle(s) {
       12h 34m 56s
    */
 
-  _s = s.trim();
-  var scales = [1, 60, 3600];
-  var sign;
-  if ((_s[0] == '-') || (_s[0] == '+')) {
-    sign = (_s[0] == '-')?(-1):(1);
-  } else {
-    sign = 1;
+  _s = s.trim().match(/^([-+]?)(.+)/);
+  var sign = 1;
+  if (_s[1] == '-') {
+    sign = -1;
   }
+
+  _s = _s[2];  // Just the magnitude
 
   if (_s.includes('d')) {
     _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
@@ -101,6 +100,7 @@ function string2angle(s) {
   
   var dms = _s.split(' ').map(parseFloat);
   var angle = 0;
+  var scales = [1, 60, 3600];
   for (var i in dms) {
     angle += dms[i] / scales[i];
   }
