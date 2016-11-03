@@ -257,7 +257,6 @@ function rowSelection(e) {
     _table.find(':checkbox').each(
       function(i) {
 	var dark = string2angle(table.row(i).data().darktime);
-	console.log(dark);
 	if (dark > 0) {
 	  this.checked = true;
 	} else {
@@ -292,7 +291,7 @@ function addTargetCallback(e) {
 /**********************************************************************/
 function updateCallback(e) {
   if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
-    eph.get('sun', 'p', function(data){ console.log('updatecallback.sun', data); plot.updateSun(data); });
+    eph.get('sun', 'p', function(data){ plot.updateSun(data); });
   }
   
   if (e.target.id == 'elevation-date') {
@@ -581,7 +580,6 @@ function newTarget(t) {
     .node();
 
   $(tr).click(function(e){
-    console.log(e.target.tagName);
     if (e.target.tagName == 'INPUT') {
       return;
     }
@@ -590,7 +588,6 @@ function newTarget(t) {
       .parent()
       .find(':checkbox')
       .each(function() {
-	console.log(this);
 	this.checked = !this.checked;
       });
   });
