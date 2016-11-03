@@ -36,14 +36,24 @@ $(document).ready(
         { data: "darktime" }
       ]
     });
-    $('#elevation-date').val(moment.tz().format().substr(0, 10));
+    $('#elevation-row-selection').change(rowSelection);
+    $('#elevation-plot-selected').click(plotSelected);
+    $('#elevation-clear-plot').click(function(){
+      plot.clear();
+    });
+    $('#elevation-clear-table').click(function() {
+      table.rows().remove().draw();
+    });
+
     $('#elevation-add-target-button').click(addTargetCallback);
-    $('#elevation-load-button').click(loadTargets);
-    $('#elevation-reset-button').click(plot.clearTargets);
+
+    $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('.elevation-observatory').click(setLocation);
     $('#elevation-date').on('change', updateCallback);
     $('#elevation-update-location-button').click(updateCallback);
-    $('.elevation-target-set-button').click(loadTargetSetButton);
+
+    $('#elevation-load-button').click(loadTargets);
+    $('.elevation-load-target-set-button').click(loadTargetSetButton);
     eph.get('sun', 'p', function(data){plot.updateSun(data);});
   }
 );
@@ -212,15 +222,64 @@ class Plot {
     Plotly.addTraces('elevation-plot', data);
   }
   
-  clearTargets() {
+  clear() {
     var plotdiv = $('#elevation-plot')[0];
     var traces = [];
     for (var i=0; i<plotdiv.data.length; i++) {
       traces.push(i);
     }
     Plotly.deleteTraces('elevation-plot', traces);
-    table.rows().remove().draw();
   }
+}
+
+/**********************************************************************/
+function rowSelection(e) {
+  var _table = $('#elevation-target-table');
+  switch (e.target.value) {
+  case "all":
+    _table.find(':checkbox').each(function(){this.checked = true;});
+    break;
+  case "none":
+    _table.find(':checkbox').each(function(){this.checked = false;});
+    break;
+  case "airmass":
+    _table.find(':checkbox').each(
+      function(i) {
+	var up = string2angle(table.row(i).data().uptime);
+	if (up > 0) {
+	  this.checked = true;
+	} else {
+	  this.checked = false;
+	}
+      });
+    break;
+  case "dark":
+    _table.find(':checkbox').each(
+      function(i) {
+	var dark = string2angle(table.row(i).data().darktime);
+	console.log(dark);
+	if (dark > 0) {
+	  this.checked = true;
+	} else {
+	  this.checked = false;
+	}
+      });
+    break;
+  default:
+  }
+  e.target.value = "select";
+}
+
+/**********************************************************************/
+function plotSelected(e) {
+  var _table = $('#elevation-target-table');
+  _table.find(':checkbox').each(
+    function(i) {
+      if (this.checked) {
+	plot.target(table.row(i).data().target_data);
+      }
+    }
+  );
 }
 
 /**********************************************************************/
@@ -237,7 +296,7 @@ function updateCallback(e) {
   }
   
   if (e.target.id == 'elevation-date') {
-    plot.clearTargets();
+    plot.clear();
   } else if ((e.target.id == 'elevation-update-location-button')
 	     || (e.target.classList.contains('elevation-observatory'))) {
     plot.updateSun();
@@ -247,7 +306,7 @@ function updateCallback(e) {
       var coords = targets.map(function(i, x) {
 	return $(x).data('target');
       });
-      plot.clearTargets();
+      plot.clear();
       for (var i=0; i<coords.length; i++) {
 	newTarget(coords[i]);
       }
@@ -427,7 +486,6 @@ function setLocation(e) {
 
 /**********************************************************************/
 function loadTargets() {
-  plot.clearTargets();
   var lines = $('#elevation-target-list').val().split('\n');
 
   var delay = 0;
@@ -457,6 +515,13 @@ function loadTargets() {
 }
 
 /**********************************************************************/
+function loadTargetSetButton(e) {
+  var button = $(e.target);
+  $('#elevation-target-list').html(button.data('targets'));
+  loadTargets();
+}
+
+/**********************************************************************/
 function newTarget(t) {
   var altaz = generateAltAz(t);
   t.ct = altaz.ct;
@@ -465,6 +530,7 @@ function newTarget(t) {
 
   var row = {};
 
+  row.target_data = t;
   row.checkbox = '<input type="checkbox">';
   row.target = t.name;
   row.ra = hr2hm(rad2hr(t.ra));
@@ -510,6 +576,22 @@ function newTarget(t) {
     row.darktime = hr2hm(darktime);
   }
 
-  table.row.add(row).draw();
-  plot.target(t);
+  var tr = table.row.add(row)
+    .draw()
+    .node();
+
+  $(tr).click(function(e){
+    console.log(e.target.tagName);
+    if (e.target.tagName == 'INPUT') {
+      return;
+    }
+
+    $(e.target)
+      .parent()
+      .find(':checkbox')
+      .each(function() {
+	console.log(this);
+	this.checked = !this.checked;
+      });
+  });
 }
