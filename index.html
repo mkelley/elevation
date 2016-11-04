@@ -47,6 +47,10 @@
       }
       a:link { color: #ee6633; }
       a:visited { color: #cccccc; }
+
+      #elevation-add-fixed-target-ra, #elevation-add-fixed-target-dec {
+        width: 10ex;
+      }
     </style>
   </head>
   <body>
@@ -60,7 +64,7 @@
 	guides at astronomical twilight, civil twilight, and daylight.</p>
       </div>
     </div>
-        
+
     <div class="box overflowx">
       <h2>Target table</h2>
 
@@ -96,19 +100,23 @@
 	</thead>
 	<tbody>
 	</tbody>
-	<tfoot>
-	  <td colspan="13">
-	    <input type="text" id="elevation-add-target-name">
-	    <select id="elevation-add-target-type">
-	      <option value="a">Asteroid</option>
-	      <option value="c" selected>Comet</option>
-	      <option value="p">Planet</option>
-	    </select>
-	    <button id="elevation-add-target-button">Add moving target</button>
-	  </td>
-	</tfoot>
       </table>
 
+      <p>
+	<input type="text" id="elevation-add-moving-target-name">
+	<select id="elevation-add-moving-target-type">
+	  <option value="a">Asteroid</option>
+	  <option value="c" selected>Comet</option>
+	  <option value="p">Planet</option>
+	</select>
+	<button id="elevation-add-moving-target-button">Add moving target</button>
+      </p>
+      <p>
+	<input type="text" id="elevation-add-fixed-target-name">
+	<input type="text" id="elevation-add-fixed-target-ra">
+	<input type="text" id="elevation-add-fixed-target-dec">
+	<button id="elevation-add-fixed-target-button">Add fixed target</button>
+      </p>
       <p><input id="elevation-open-file" type="file"></p>
     </div>
 

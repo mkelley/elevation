@@ -45,14 +45,20 @@ $(document).ready(
       table.rows().remove().draw();
     });
 
-    $('#elevation-add-target-button').click(addTargetCallback);
+    $('#elevation-add-moving-target-button').click(addMovingTargetCallback);
+    $('#elevation-add-fixed-target-button').click(addFixedTargetCallback);
 
     $('#elevation-open-file').change(openFile);
 
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
-    $('.elevation-observatory').click(setLocation);
-    $('#elevation-date').on('change', updateCallback);
-    $('#elevation-update-location-button').click(updateCallback);
+    $('.elevation-observatory').click(function(e) {
+      $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
+      $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
+      $('#elevation-timezone').val(e.target.dataset.timezone);
+      updateLocationCallback(e);
+    });
+    $('#elevation-date').on('change', updateLocationCallback);
+    $('#elevation-update-location-button').click(updateLocationCallback);
 
     $('#elevation-load-button').click(function(e) {
       loadTargets($('#elevation-target-list').val());
@@ -286,14 +292,24 @@ function plotSelected(e) {
 }
 
 /**********************************************************************/
-function addTargetCallback(e) {
-  var name = $('#elevation-add-target-name').val();
-  var type = $('#elevation-add-target-type').val();
+function addMovingTargetCallback(e) {
+  var name = $('#elevation-add-moving-target-name').val();
+  var type = $('#elevation-add-moving-target-type').val();
   eph.get(name, type, newTarget);
 }
 
 /**********************************************************************/
-function updateCallback(e) {
+function addFixedTargetCallback(e) {
+  var t = {
+    name: $('#elevation-add-fixed-target-name').val(),
+    ra: hr2rad(string2angle($('#elevation-add-fixed-target-ra').val())),
+    dec: deg2rad(string2angle($('#elevation-add-fixed-target-dec').val()))
+  };
+  newTarget(t);
+}
+
+/**********************************************************************/
+function updateLocationCallback(e) {
   if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
     eph.get('sun', 'p', function(data){ plot.updateSun(data); });
   }
@@ -302,6 +318,7 @@ function updateCallback(e) {
     plot.clear();
   } else if ((e.target.id == 'elevation-update-location-button')
 	     || (e.target.classList.contains('elevation-observatory'))) {
+    plot.clear();
     plot.updateSun();
 
     var targets = $('.elevation-target');
@@ -477,14 +494,6 @@ function generateAltAz(coords) {
     alt: altaz.alt.map(rad2deg),
     az: altaz.az.map(rad2deg),
   };
-}
-
-/**********************************************************************/
-function setLocation(e) {
-  $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
-  $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
-  $('#elevation-timezone').val(e.target.dataset.timezone);
-  updateCallback(e);
 }
 
 /**********************************************************************/
