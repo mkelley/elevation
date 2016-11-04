@@ -10,46 +10,51 @@
     <script src="http://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
     <script src="http://cdn.datatables.net/plug-ins/1.10.12/sorting/natural.js"></script>
     <style>
-      body { 
-        background: #2F2F2F;
-        color: white;
+      @media screen {
+        body { 
+          background: #2F2F2F;
+          color: white;
+        }
+        .latlon {
+          width: 7em;
+        }
+        .tz {
+          width: 10em;
+        }
+        .box {
+          border: 1px solid white;
+          border-radius: 5px;
+          margin: 5px;
+          padding: 5px;
+          width: 75%;
+        }
+  
+        table {
+          border-collapse: collapse;
+        }
+        table th {
+          font-size: small;
+        }
+        table, th, td {
+          border: 1px solid #aaa;
+        }
+        tr:hover { background-color: #5f5f5f; }
+  
+        .overflowx { overflow-x: auto; }
+  
+        #elevation-error {
+          height: 3em;
+          overflow-y: auto;
+        }
+        a:link { color: #ee6633; }
+        a:visited { color: #cccccc; }
+  
+        #elevation-add-fixed-target-ra, #elevation-add-fixed-target-dec {
+          width: 10ex;
+        }
       }
-      .latlon {
-        width: 7em;
-      }
-      .tz {
-        width: 10em;
-      }
-      .box {
-        border: 1px solid white;
-        border-radius: 5px;
-        margin: 5px;
-        padding: 5px;
-        width: 75%;
-      }
-
-      table {
-        border-collapse: collapse;
-      }
-      table th {
-        font-size: small;
-      }
-      table, th, td {
-        border: 1px solid #aaa;
-      }
-      tr:hover { background-color: #5f5f5f; }
-
-      .overflowx { overflow-x: auto; }
-
-      #elevation-error {
-        height: 3em;
-        overflow-y: auto;
-      }
-      a:link { color: #ee6633; }
-      a:visited { color: #cccccc; }
-
-      #elevation-add-fixed-target-ra, #elevation-add-fixed-target-dec {
-        width: 10ex;
+      @media print {
+        .elevation-ui { display: none; }
       }
     </style>
   </head>
@@ -68,7 +73,7 @@
     <div class="box overflowx">
       <h2>Target table</h2>
 
-      <div>
+      <div class="elevation-ui">
 	<select id="elevation-row-selection">
 	  <option value="select">Select...</option>
 	  <option value="all">All</option>
@@ -102,28 +107,30 @@
 	</tbody>
       </table>
 
-      <p>
-	<input type="text" id="elevation-add-moving-target-name">
-	<select id="elevation-add-moving-target-type">
-	  <option value="a">Asteroid</option>
-	  <option value="c" selected>Comet</option>
-	  <option value="p">Planet</option>
-	</select>
-	<button id="elevation-add-moving-target-button">Add moving target</button>
-      </p>
-      <p>
-	<input type="text" id="elevation-add-fixed-target-name">
-	<input type="text" id="elevation-add-fixed-target-ra">
-	<input type="text" id="elevation-add-fixed-target-dec">
-	<button id="elevation-add-fixed-target-button">Add fixed target</button>
-      </p>
-      <p><input id="elevation-open-file" type="file"></p>
+      <div class="elevation-ui">
+	<p>
+	  <input type="text" id="elevation-add-moving-target-name">
+	  <select id="elevation-add-moving-target-type">
+	    <option value="a">Asteroid</option>
+	    <option value="c" selected>Comet</option>
+	    <option value="p">Planet</option>
+	  </select>
+	  <button id="elevation-add-moving-target-button">Add moving target</button>
+	</p>
+	<p>
+	  <input type="text" id="elevation-add-fixed-target-name">
+	  <input type="text" id="elevation-add-fixed-target-ra">
+	  <input type="text" id="elevation-add-fixed-target-dec">
+	  <button id="elevation-add-fixed-target-button">Add fixed target</button>
+	</p>
+	<p><input id="elevation-open-file" type="file"></p>
+      </div>
     </div>
 
     <div class="box">
       <h2>Date and location</h2>
       <p>
-	Date: <input type="date" id="elevation-date"> (e.g., YYYY-MM-DD)
+	Date: <input type="date" id="elevation-date"><span class="elevation-ui">(e.g., YYYY-MM-DD)</span>
       </p>
       <p>
 	Location:
@@ -131,22 +138,23 @@
         <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-longitude" value="-111.4223">&deg;E
         <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
       </p>
-      <p>
-	<button class="elevation-observatory" data-latitude="19.8208" data-longitude="-155.4681" data-timezone="US/Hawaii">MKO</button>
-	<button class="elevation-observatory" data-latitude="34.7444" data-longitude="-111.4223" data-timezone="US/Arizona">DCT</button>
-	<button class="elevation-observatory" data-latitude="30.6797" data-longitude="-104.0248" data-timezone="US/Central">McDonald</button>
-	<button class="elevation-observatory" data-latitude="39.0020" data-longitude="-76.9561" data-timezone="US/Eastern">UMD</button>
-	<button class="elevation-observatory" data-latitude="-30.1716" data-longitude="-70.8009" data-timezone="America/Santiago">CTIO</button>
-	<button class="elevation-observatory" data-latitude="-24.6275" data-longitude="-70.4044" data-timezone="America/Santiago">VLT</button>
-	<button class="elevation-observatory" data-latitude="28.7569" data-longitude="-17.8925" data-timezone="Atlantic/Canary">La Palma</button><br>
-      </p>
-
-      <p>
-	<button id="elevation-update-location-button">Update location</button>
-      </p>
+      <div class="elevation-ui">
+	<p>
+	  <button class="elevation-observatory" data-latitude="19.8208" data-longitude="-155.4681" data-timezone="US/Hawaii">MKO</button>
+	  <button class="elevation-observatory" data-latitude="34.7444" data-longitude="-111.4223" data-timezone="US/Arizona">DCT</button>
+	  <button class="elevation-observatory" data-latitude="30.6797" data-longitude="-104.0248" data-timezone="US/Central">McDonald</button>
+	  <button class="elevation-observatory" data-latitude="39.0020" data-longitude="-76.9561" data-timezone="US/Eastern">UMD</button>
+	  <button class="elevation-observatory" data-latitude="-30.1716" data-longitude="-70.8009" data-timezone="America/Santiago">CTIO</button>
+	  <button class="elevation-observatory" data-latitude="-24.6275" data-longitude="-70.4044" data-timezone="America/Santiago">VLT</button>
+	  <button class="elevation-observatory" data-latitude="28.7569" data-longitude="-17.8925" data-timezone="Atlantic/Canary">La Palma</button><br>
+	</p>
+	<p>
+	  <button id="elevation-update-location-button">Update location</button>
+	</p>
+      </div>
     </div>
     
-    <div class="box">
+    <div class="box elevation-ui">
       <h2>Target input</h2>
       <ul>
 	<li>Columns: Target, Type, RA, Dec, Notes.</li>
@@ -178,13 +186,14 @@ C/2015 V2,c,,,V=13 OH+color
 C/2013 A1,c,,,V=22 r
 C/2014 Q2,c,,,V=20 r
 C/2016 M1,c,,,V=18 r
-</textarea><br>
-      <p><button id="elevation-load-button">Load into table</button></p>
+</textarea>
+      <p class="elevation-ui">
+	<button id="elevation-load-button">Load into table</button>
+      </p>
     </div>
 
-    <div class="box">
+    <div class="box elevation-ui">
       <h2>Pre-defined target lists</h2>
-      
       <p>
 	Cometary Orbital Trends
 	<button class="elevation-load-target-set-button"
