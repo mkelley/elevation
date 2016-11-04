@@ -47,12 +47,16 @@ $(document).ready(
 
     $('#elevation-add-target-button').click(addTargetCallback);
 
+    $('#elevation-open-file').change(openFile);
+
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('.elevation-observatory').click(setLocation);
     $('#elevation-date').on('change', updateCallback);
     $('#elevation-update-location-button').click(updateCallback);
 
-    $('#elevation-load-button').click(loadTargets);
+    $('#elevation-load-button').click(function(e) {
+      loadTargets($('#elevation-target-list').val());
+    });
     $('.elevation-load-target-set-button').click(loadTargetSetButton);
     eph.get('sun', 'p', function(data){plot.updateSun(data);});
   }
@@ -484,8 +488,8 @@ function setLocation(e) {
 }
 
 /**********************************************************************/
-function loadTargets() {
-  var lines = $('#elevation-target-list').val().split('\n');
+function loadTargets(targetList) {
+  var lines = targetList.split('\n');
 
   var delay = 0;
   for (var i in lines) {
@@ -514,10 +518,20 @@ function loadTargets() {
 }
 
 /**********************************************************************/
+function openFile(e) {
+  var reader = new FileReader();
+
+  reader.onload = function(theFile) {
+    loadTargets(theFile.target.result);
+  };
+  reader.readAsText(e.target.files[0]);
+}
+
+/**********************************************************************/
 function loadTargetSetButton(e) {
   var button = $(e.target);
-  $('#elevation-target-list').html(button.data('targets'));
-  loadTargets();
+  $('#elevation-target-list').val(button.data('targets'));
+  loadTargets(button.data('targets'));
 }
 
 /**********************************************************************/
@@ -530,7 +544,7 @@ function newTarget(t) {
   var row = {};
 
   row.target_data = t;
-  row.checkbox = '<input type="checkbox">';
+  row.checkbox = '<input type="checkbox" checked="true">';
   row.target = t.name;
   row.ra = hr2hm(rad2hr(t.ra));
   row.dec = {
