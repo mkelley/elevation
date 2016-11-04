@@ -2,48 +2,12 @@ $(document).ready(
   function() {
     eph = new IMCCE();
     plot = new Plot();
-    table = $('#elevation-target-table').DataTable({
-      searching: false,
-      paging: false,
-      columns: [
-        { data: "checkbox" },
-        {
-	  data: "target",
-	  type: "natural"
-	},
-        { data: "ra" },
-        { data:
-	  {
-	    _: "dec.display",
-	    sort: "dec.degree"
-	  },
-	  type: "numeric"
-	},
-        { data: "mv" },
-        { data: "delta" },
-        { data: "ddot" },
-        { data: "phase" },
-        { data: "elong" },
-        { data: "mu" },
-        { data:
-	  {
-            _:    "transit.display",
-            sort: "transit.hour",
-	  },
-	  type: "numeric"
-        },
-        { data: "uptime" },
-        { data: "darktime" }
-      ]
-    });
-    $('#elevation-row-selection').change(rowSelection);
-    $('#elevation-plot-selected').click(plotSelected);
-    $('#elevation-clear-plot').click(function(){
-      plot.clear();
-    });
-    $('#elevation-clear-table').click(function() {
-      table.rows().remove().draw();
-    });
+    table = new Table();
+
+    $('#elevation-row-selection').change(rowSelectionCallback);
+    $('#elevation-plot-selected').click(function(){table.plot();});
+    $('#elevation-clear-plot').click(function(){plot.clear();});
+    $('#elevation-clear-table').click(function(){table.clear();});
 
     $('#elevation-add-moving-target-button').click(addMovingTargetCallback);
     $('#elevation-add-fixed-target-button').click(addFixedTargetCallback);
@@ -243,94 +207,73 @@ class Plot {
 }
 
 /**********************************************************************/
-function rowSelection(e) {
-  var _table = $('#elevation-target-table');
-  switch (e.target.value) {
-  case "all":
-    _table.find(':checkbox').each(function(){this.checked = true;});
-    break;
-  case "none":
-    _table.find(':checkbox').each(function(){this.checked = false;});
-    break;
-  case "airmass":
-    _table.find(':checkbox').each(
-      function(i) {
-	var up = string2angle(table.row(i).data().uptime);
-	if (up > 0) {
-	  this.checked = true;
-	} else {
-	  this.checked = false;
-	}
-      });
-    break;
-  case "dark":
-    _table.find(':checkbox').each(
-      function(i) {
-	var dark = string2angle(table.row(i).data().darktime);
-	if (dark > 0) {
-	  this.checked = true;
-	} else {
-	  this.checked = false;
-	}
-      });
-    break;
-  default:
+class Table {
+  constructor() {
+    this.datatable = $('#elevation-target-table').DataTable({
+      searching: false,
+      paging: false,
+      columns: [
+        { data: "checkbox" },
+        {
+	  data: "target",
+	  type: "natural"
+	},
+        { data: "ra" },
+        { data:
+	  {
+	    _: "dec.display",
+	    sort: "dec.degree"
+	  },
+	  type: "numeric"
+	},
+        { data: "mv" },
+        { data: "delta" },
+        { data: "ddot" },
+        { data: "phase" },
+        { data: "elong" },
+        { data: "mu" },
+        { data:
+	  {
+            _:    "transit.display",
+            sort: "transit.hour",
+	  },
+	  type: "numeric"
+        },
+        { data: "uptime" },
+        { data: "darktime" }
+      ]
+    })
   }
-  e.target.value = "select";
-}
 
-/**********************************************************************/
-function plotSelected(e) {
-  var _table = $('#elevation-target-table');
-  _table.find(':checkbox').each(
-    function(i) {
-      if (this.checked) {
-	plot.target(table.row(i).data().target_data);
-      }
-    }
-  );
-}
-
-/**********************************************************************/
-function addMovingTargetCallback(e) {
-  var name = $('#elevation-add-moving-target-name').val();
-  var type = $('#elevation-add-moving-target-type').val();
-  eph.get(name, type, newTarget);
-}
-
-/**********************************************************************/
-function addFixedTargetCallback(e) {
-  var t = {
-    name: $('#elevation-add-fixed-target-name').val(),
-    ra: hr2rad(string2angle($('#elevation-add-fixed-target-ra').val())),
-    dec: deg2rad(string2angle($('#elevation-add-fixed-target-dec').val()))
-  };
-  newTarget(t);
-}
-
-/**********************************************************************/
-function updateLocationCallback(e) {
-  if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
-    eph.get('sun', 'p', function(data){ plot.updateSun(data); });
+  add(row) {
+    var tr = this.datatable.row.add(row)
+      .draw()
+      .node();
+    
+    $(tr).click(rowCheckboxToggle);
   }
-  
-  if (e.target.id == 'elevation-date') {
-    plot.clear();
-  } else if ((e.target.id == 'elevation-update-location-button')
-	     || (e.target.classList.contains('elevation-observatory'))) {
-    plot.clear();
-    plot.updateSun();
 
-    var targets = $('.elevation-target');
-    if (targets.length > 0) {
-      var coords = targets.map(function(i, x) {
-	return $(x).data('target');
-      });
-      plot.clear();
-      for (var i=0; i<coords.length; i++) {
-	newTarget(coords[i]);
-      }
-    }
+  plot() {
+    $('#elevation-target-table')
+      .find(':checkbox').each(
+	function(i) {
+	  if (this.checked) {
+	    plot.target(table.datatable.row(i).data().target_data);
+	  }
+	}
+      );
+  }
+
+  clear() {
+    this.datatable.rows().remove().draw();
+  }
+
+  darkitime(i) {
+    return string2angle(this.datatable.row(i).data().darktime);
+  }
+
+  uptime(i) {
+    return string2angle(this.datatable.row(i).data().uptime);
   }
 }
 
@@ -598,20 +541,99 @@ function newTarget(t) {
     row.darktime = hr2hm(darktime);
   }
 
-  var tr = table.row.add(row)
-    .draw()
-    .node();
+  table.add(row);
+}
 
-  $(tr).click(function(e){
-    if (e.target.tagName == 'INPUT') {
-      return;
-    }
+/**********************************************************************/
+function addMovingTargetCallback(e) {
+  var name = $('#elevation-add-moving-target-name').val();
+  var type = $('#elevation-add-moving-target-type').val();
+  eph.get(name, type, newTarget);
+}
 
-    $(e.target)
-      .parent()
-      .find(':checkbox')
-      .each(function() {
-	this.checked = !this.checked;
+/**********************************************************************/
+function addFixedTargetCallback(e) {
+  var t = {
+    name: $('#elevation-add-fixed-target-name').val(),
+    ra: hr2rad(string2angle($('#elevation-add-fixed-target-ra').val())),
+    dec: deg2rad(string2angle($('#elevation-add-fixed-target-dec').val()))
+  };
+  newTarget(t);
+}
+
+/**********************************************************************/
+function updateLocationCallback(e) {
+  if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
+    eph.get('sun', 'p', function(data){ plot.updateSun(data); });
+  }
+  
+  if (e.target.id == 'elevation-date') {
+    plot.clear();
+  } else if ((e.target.id == 'elevation-update-location-button')
+	     || (e.target.classList.contains('elevation-observatory'))) {
+    plot.clear();
+    plot.updateSun();
+
+    var targets = $('.elevation-target');
+    if (targets.length > 0) {
+      var coords = targets.map(function(i, x) {
+	return $(x).data('target');
       });
-  });
+      plot.clear();
+      for (var i=0; i<coords.length; i++) {
+	newTarget(coords[i]);
+      }
+    }
+  }
+}
+
+/**********************************************************************/
+function rowSelectionCallback(e) {
+  var _table = $('#elevation-target-table');
+  switch (e.target.value) {
+  case "all":
+    _table.find(':checkbox').each(function(){this.checked = true;});
+    break;
+  case "none":
+    _table.find(':checkbox').each(function(){this.checked = false;});
+    break;
+  case "airmass":
+    _table.find(':checkbox').each(
+      function(i) {
+	var up = table.uptime(i);
+	if (up > 0) {
+	  this.checked = true;
+	} else {
+	  this.checked = false;
+	}
+      });
+    break;
+  case "dark":
+    _table.find(':checkbox').each(
+      function(i) {
+	var dark = table.darktime(i);
+	if (dark > 0) {
+	  this.checked = true;
+	} else {
+	  this.checked = false;
+	}
+      });
+    break;
+  default:
+  }
+  e.target.value = "select";
+}
+
+/**********************************************************************/
+function rowCheckboxToggle(e) {
+  if (e.target.tagName == 'INPUT') {
+    return;
+  }
+
+  $(e.target)
+    .parent()
+    .find(':checkbox')
+    .each(function() {
+      this.checked = !this.checked;
+    });
 }
