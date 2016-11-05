@@ -41,6 +41,12 @@ var Util = {
   hr2deg: function(x) { return (x * 15); },
   deg2hr: function(x) { return (x / 15); },
   
+  branchcut: function(x, cut, period) {
+    y = x % period;
+    y = (y < 0)?(y + period):(y);
+    return (y < cut)?(y):(y - period);
+  },
+
   sexagesimal: function(x, seconds_precision, degrees_width) {
     /* 
        seconds_precision : integer
@@ -139,21 +145,59 @@ class Angle {
   }
   
   valueOf() { return this.a; }
-  get deg () { return Util.rad2deg(this); }
-  get hr () { return Util.rad2hr(this); }
+
+  get deg () {
+    var d;
+    if (this.a instanceof Array) {
+      d = this.a.map(Util.rad2deg);
+    } else {
+      d = Util.rad2deg(this);
+    }
+    return d;
+  }
+
+  get hr () {
+    var h;
+    if (this.a instanceof Array) {
+      h = this.a.map(Util.rad2hr);
+    } else {
+      h = Util.rad2hr(this);
+    }
+    return h;
+  }
   
   dms(seconds_precision, degrees_width) {
-    return Util.sexagesimal(this.deg, seconds_precision, degrees_width);
+    var s;
+    if (this.a instanceof Array) {
+      s = this.deg.map(function(a) {
+	return Util.sexagesimal(a, seconds_precision, degrees_width);
+      });
+    } else {
+      s = Util.sexagesimal(this.deg, seconds_precision, degrees_width);
+    }
+    return s;
   }
 
   hms(seconds_precision, hours_width) {
-    return Util.sexagesimal(this.hr, seconds_precision, hours_width);
+    var s;
+    if (this.a instanceof Array) {
+      s = this.hr.map(function(a) {
+	return Util.sexagesimal(a, seconds_precision, hours_width);
+      });
+    } else {
+      s = Util.sexagesimal(this.hr, seconds_precision, hours_width);
+    }
+    return s;
   }
 
   branchcut(cut, period) {
-    y = this % period;
-    y = (y < 0)?(y + period):(y);
-    return new Angle((y < cut)?(y):(y - period));
+    var a;
+    if (this.a instanceof Array) {
+      a = this.a.map(function(a){ return Util.branchcut(a, cut, period); });
+    } else {
+      a = Util.branchcut(this, cut, period);
+    }
+    return new Angle(a);
   }
 }
 
