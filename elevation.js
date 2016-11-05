@@ -102,7 +102,10 @@ var Util = {
 /**********************************************************************/
 class Angle {
   constructor(a, unit) {
-    /* a : angle magnitude, may be a string with the following formats:
+    /* 
+       a : Array 
+         angle magnitudes, each item may be a number or a string with
+         the following formats:
             1.2
             01 23 45
             1 23 45.6
@@ -112,8 +115,8 @@ class Angle {
             12d34m56s
             12d 34m 56s
             12h 34m 56s
-	   May also be an Array of values.
-       unit : 'deg', 'rad', or 'hr', default is 'rad'.
+       unit : string
+         'deg', 'rad', or 'hr', default is 'rad'.
     */
 
     var conv = function(a) {
@@ -137,67 +140,34 @@ class Angle {
       return b;
     };
 
-    if (a instanceof Array) {
-      this.a = a.map(conv);
-    } else {
-      this.a = conv(a);
-    }
+    this.data = a.map(conv);
   }
   
-  valueOf() { return this.a; }
-
-  get deg () {
-    var d;
-    if (this.a instanceof Array) {
-      d = this.a.map(Util.rad2deg);
-    } else {
-      d = Util.rad2deg(this);
-    }
-    return d;
-  }
-
-  get hr () {
-    var h;
-    if (this.a instanceof Array) {
-      h = this.a.map(Util.rad2hr);
-    } else {
-      h = Util.rad2hr(this);
-    }
-    return h;
-  }
+  get deg () { return this.data.map(Util.rad2deg); }
+  get hr () { return this.data.map(Util.rad2hr); }
+  get rad () { return this.data; }
   
   dms(seconds_precision, degrees_width) {
-    var s;
-    if (this.a instanceof Array) {
-      s = this.deg.map(function(a) {
-	return Util.sexagesimal(a, seconds_precision, degrees_width);
-      });
-    } else {
-      s = Util.sexagesimal(this.deg, seconds_precision, degrees_width);
-    }
-    return s;
+    return this.deg.map(function(a) {
+      return Util.sexagesimal(a, seconds_precision, degrees_width);
+    });
   }
 
   hms(seconds_precision, hours_width) {
-    var s;
-    if (this.a instanceof Array) {
-      s = this.hr.map(function(a) {
-	return Util.sexagesimal(a, seconds_precision, hours_width);
-      });
-    } else {
-      s = Util.sexagesimal(this.hr, seconds_precision, hours_width);
-    }
+    return this.hr.map(function(a) {
+      return Util.sexagesimal(a, seconds_precision, hours_width);
+    });
     return s;
   }
 
-  branchcut(cut, period) {
-    var a;
-    if (this.a instanceof Array) {
-      a = this.a.map(function(a){ return Util.branchcut(a, cut, period); });
-    } else {
-      a = Util.branchcut(this, cut, period);
+  branchcut(cut, period, unit) {
+    if (unit === undefined) {
+      unit = 'rad';
     }
-    return new Angle(a);
+
+    return this[unit].map(function(a){
+      return Util.branchcut(a, cut, period);
+    });
   }
 }
 
@@ -752,7 +722,7 @@ function rowCheckboxToggle(e) {
 /**********************************************************************/
 var DEBUG = false;
 var ctSteps = 360;
-var ctStepSize = new Angle(2 * Math.PI / ctSteps);
+var ctStepSize = new Angle([2 * Math.PI / ctSteps]);
 var eph;
 var plot;
 var table;
