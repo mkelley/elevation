@@ -252,17 +252,34 @@ class Angle {
   rise(thresh, unit) {
     /* Return the index of angle where it rises past thresh (default
        radians). */
-    return this[unit].findIndex(function(this_alt, i, alt) {
-      return ((alt[i-1] < thresh) && (this_alt >= thresh));
+    return this[unit].findIndex(function(a, i, alt) {
+      return ((alt[i-1] < thresh) && (alt[i] >= thresh));
     });
   }
 
+  transit() {
+    /* Return the index of transit. */
+    return this.rad.indexOf(Math.max.apply(null, this.rad));
+  }
+
   set(thresh, unit) {
-    /* Return the index of alt where it rises past thresh (default
+    /* Return the index of alt where it sets past thresh (default
        radians). */
-    return this[unit].findIndex(function(this_alt, i, alt) {
-      return ((alt[i-1] > thresh) && (this_alt <= thresh));
+    return this[unit].findIndex(function(a, i, alt) {
+      return ((alt[i-1] > thresh) && (alt[i] <= thresh));
     });
+  }
+
+  greater(thresh, unit) {
+    /* Return true for each element greater than the threshold
+       (default radians). */
+    return this[unit].map(function(a) { return (a > thresh); });
+  }
+
+  less(thresh, unit) {
+    /* Return true for each element less than the threshold
+       (default radians). */
+    return this[unit].map(function(a) { return (a <thresh); });
   }
 }
 
@@ -605,8 +622,6 @@ function generateAltAz(coords) {
   };
 }
 
-// XXXXXXXXXXXXXXXXXXX Edited for Angle usage up to here XXXXXXXXXXXXXXXXXXXXxxxxxxXxx
-
 /**********************************************************************/
 function loadTargets(targetList) {
   var lines = targetList.split('\n');
@@ -626,8 +641,8 @@ function loadTargets(targetList) {
     if (row[1].trim() == 'f') {
       newTarget({
 	name: row[0],
-	ra: hr2rad(string2angle(row[2])),
-	dec: deg2rad(string2angle(row[3]))
+	ra: Util.hr2rad(Util.string2angle(row[2])),
+	dec: Util.deg2rad(Util.string2angle(row[3]))
       });
     } else {
       setTimeout(function(name, type, done) { eph.get(name, type, done); },
@@ -666,10 +681,10 @@ function newTarget(t) {
   row.target_data = t;
   row.checkbox = '<input type="checkbox" checked="true">';
   row.target = t.name;
-  row.ra = hr2hm(rad2hr(t.ra));
+  row.ra = Util.sexagesimal(Util.rad2hr(t.ra), 1, 2);
   row.dec = {
-    display: deg2dm(rad2deg(t.dec), 2),
-    degree: rad2deg(t.dec)
+    display: Util.sexagesimal(Util.rad2deg(t.dec), 0, 2),
+    degree: Util.rad2deg(t.dec)
   };
 
   if ('mv' in t) {
@@ -688,25 +703,23 @@ function newTarget(t) {
     row.mu = '';
   }
 
-  var test = t.alt.indexOf(Math.max.apply(null, t.alt));
-  var transit = t.ct[test];
+  var transit = t.ct.hr[t.alt.transit()];
   row.transit = {
-    display: hr2hm(transit),
+    display: Util.sexagesimal(transit, 0, 2).substr(0, 5),
     hour: transit
   };
   
-  test = t.alt.map(function(x) { return (x > 30); });
+  var up = t.alt.greater(30, 'deg');
   var uptime = 24 / ctSteps * test.reduce(Util.sum, 0);
-  row.uptime = hr2hm(uptime);
+  row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 5);
 
   if (plot.sun === undefined) {
     row.darktime = 0;
   } else {
-    test = t.alt.map(function(x, i) {
-      return (x > 30) * (plot.sun.alt[i] < -18);
-    });
+    var dark = plot.sun.alt.less(-18, 'deg');
+    var test = up.map(function(x, i) { return x * dark[i]; });
     var darktime = 24 / ctSteps * test.reduce(Util.sum, 0);
-    row.darktime = hr2hm(darktime);
+    row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 5);
   }
 
   table.add(row);
@@ -723,8 +736,16 @@ function addMovingTargetCallback(e) {
 function addFixedTargetCallback(e) {
   var t = {
     name: $('#elevation-add-fixed-target-name').val(),
-    ra: hr2rad(string2angle($('#elevation-add-fixed-target-ra').val())),
-    dec: deg2rad(string2angle($('#elevation-add-fixed-target-dec').val()))
+    ra: Util.hr2rad(
+      Util.string2angle(
+	$('#elevation-add-fixed-target-ra').val()
+      )
+    ),
+    dec: Util.deg2rad(
+      Util.string2angle(
+	$('#elevation-add-fixed-target-dec').val()
+      )
+    )
   };
   newTarget(t);
 }
