@@ -1,50 +1,9 @@
-$(document).ready(
-  function() {
-    eph = new IMCCE();
-    plot = new Plot();
-    table = new Table();
-
-    $('#elevation-row-selection').change(rowSelectionCallback);
-    $('#elevation-plot-selected').click(function(){table.plot();});
-    $('#elevation-clear-plot').click(function(){plot.clear();});
-    $('#elevation-clear-table').click(function(){table.clear();});
-
-    $('#elevation-add-moving-target-button').click(addMovingTargetCallback);
-    $('#elevation-add-fixed-target-button').click(addFixedTargetCallback);
-
-    $('#elevation-open-file').change(openFile);
-
-    $('#elevation-date').val(moment.tz().format().substr(0, 10));
-    $('.elevation-observatory').click(function(e) {
-      $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
-      $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
-      $('#elevation-timezone').val(e.target.dataset.timezone);
-      updateLocationCallback(e);
-    });
-    $('#elevation-date').on('change', updateLocationCallback);
-    $('#elevation-update-location-button').click(updateLocationCallback);
-
-    $('#elevation-load-button').click(function(e) {
-      loadTargets($('#elevation-target-list').val());
-    });
-    $('.elevation-load-target-set-button').click(loadTargetSetButton);
-    eph.get('sun', 'p', function(data){plot.updateSun(data);});
-  }
-);
-
-var DEBUG = false;
-var ctSteps = 360;
-var ctStepSize = 2 * Math.PI / ctSteps;  // rad
-var eph;
-var plot;
-var table;
-
 /**********************************************************************/
 function error(msg) { $('#elevation-console').prepend('<p>' + msg + '</p>'); }
 
 /**********************************************************************/
 var Util = {
-  sum: function(a, b) { return a + b; }
+  sum: function(a, b) { return a + b; },
   string2angle: function(s) {
     var _s = s.trim().match(/^([-+]?)(.+)/);
     var sign = (_s[1] == '-')?-1:1;
@@ -147,23 +106,35 @@ class Angle {
             12d34m56s
             12d 34m 56s
             12h 34m 56s
+	   May also be an Array of values.
        unit : 'deg', 'rad', or 'hr', default is 'rad'.
     */
 
-    if (typeof a === 'string') {
-      this.a = Util.string2angle(a);
-    } else {
-      this.a = a;
-    }
+    var conv = function(a) {
+      var b;
+      if (typeof a === 'string') {
+	b = Util.string2angle(a);
+      } else {
+	b = a;
+      }
 
-    switch(unit) {
-    case 'deg':
-      this.a = Util.deg2rad(this.a);
-      break;
-    case 'hr':
-      this.a = Util.hr2rad(this.a);
-      break;
-    default:
+      switch(unit) {
+      case 'deg':
+	b = Util.deg2rad(b);
+	break;
+      case 'hr':
+	b = Util.hr2rad(b);
+	break;
+      default:
+      }
+
+      return b;
+    };
+
+    if (a instanceof Array) {
+      this.a = a.map(conv);
+    } else {
+      this.a = conv(a);
     }
   }
   
@@ -204,7 +175,7 @@ class Plot {
 	range: [10, 90]
       },
       margin: {
-	t: 10,
+	t: 12,
 	b: 50,
 	l: 50,
 	r: 50,
@@ -732,3 +703,47 @@ function rowCheckboxToggle(e) {
       this.checked = !this.checked;
     });
 }
+
+
+/**********************************************************************/
+var DEBUG = false;
+var ctSteps = 360;
+var ctStepSize = new Angle(2 * Math.PI / ctSteps);
+var eph;
+var plot;
+var table;
+
+$(document).ready(
+  function() {
+    eph = new IMCCE();
+    plot = new Plot();
+    table = new Table();
+
+    $('#elevation-row-selection').change(rowSelectionCallback);
+    $('#elevation-plot-selected').click(function(){table.plot();});
+    $('#elevation-clear-plot').click(function(){plot.clear();});
+    $('#elevation-clear-table').click(function(){table.clear();});
+
+    $('#elevation-add-moving-target-button').click(addMovingTargetCallback);
+    $('#elevation-add-fixed-target-button').click(addFixedTargetCallback);
+
+    $('#elevation-open-file').change(openFile);
+
+    $('#elevation-date').val(moment.tz().format().substr(0, 10));
+    $('.elevation-observatory').click(function(e) {
+      $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
+      $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
+      $('#elevation-timezone').val(e.target.dataset.timezone);
+      updateLocationCallback(e);
+    });
+    $('#elevation-date').on('change', updateLocationCallback);
+    $('#elevation-update-location-button').click(updateLocationCallback);
+
+    $('#elevation-load-button').click(function(e) {
+      loadTargets($('#elevation-target-list').val());
+    });
+    $('.elevation-load-target-set-button').click(loadTargetSetButton);
+    eph.get('sun', 'p', function(data){plot.updateSun(data);});
+  }
+);
+
