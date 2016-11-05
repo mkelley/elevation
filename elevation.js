@@ -40,55 +40,150 @@ var plot;
 var table;
 
 /**********************************************************************/
-function error(msg) {
-  $('#elevation-console').prepend('<p>' + msg + '</p>');
-}
+function error(msg) { $('#elevation-console').prepend('<p>' + msg + '</p>'); }
 
 /**********************************************************************/
-function sum(a, b) {
-  return a + b;
-}
+var Util = {
+  sum: function(a, b) { return a + b; }
+  string2angle: function(s) {
+    var _s = s.trim().match(/^([-+]?)(.+)/);
+    var sign = (_s[1] == '-')?-1:1;
+    _s = _s[2];  // now just the magnitude
 
-/**********************************************************************/
-function string2angle(s) {
-  /*
-    Possible strings:
-      1.2
-      01 23 45
-      1 23 45.6
-      1 2 3
-      1 2
-      12:34:56
-      12d34m56s
-      12d 34m 56s
-      12h 34m 56s
-   */
-
-  var _s = s.trim().match(/^([-+]?)(.+)/);
-  var sign = (_s[1] == '-')?-1:1;
-  _s = _s[2];  // now just the magnitude
-
-  if (_s.includes('d')) {
-    _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
-  } else if (_s.includes('h')) {
-    _s = _s.replace('h', ' ').replace('m', ' ').replace('s', ' ');
-  }
-
-  if (_s.includes(':')) {
-    _s = _s.replace(/:/g, ' ');
-  }
-
-  var dms = _s.trim().split(/\s+/).map(parseFloat);
-  var angle = 0;
-  var scales = [1, 60, 3600];
-  for (var i in dms) {
-    if (i > 2) {
-      break;
+    if (_s.includes('d')) {
+      _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
+    } else if (_s.includes('h')) {
+      _s = _s.replace('h', ' ').replace('m', ' ').replace('s', ' ');
     }
-    angle += dms[i] / scales[i];
+
+    if (_s.includes(':')) {
+      _s = _s.replace(/:/g, ' ');
+    }
+
+    var dms = _s.trim().split(/\s+/).map(parseFloat);
+    var angle = 0;
+    var scales = [1, 60, 3600];
+    for (var i in dms) {
+      if (i > 2) {
+	break;
+      }
+      angle += dms[i] / scales[i];
+    }
+    
+    return sign * angle;
+  },
+  
+  deg2rad: function(x) { return (x * Math.PI / 180); },
+  rad2deg: function(x) { return (x * 180 / Math.PI); },
+
+  hr2rad: function(x) { return (x * Math.PI / 12); },
+  rad2hr: function(x) { return (x * 12 / Math.PI); },
+  
+  hr2deg: function(x) { return (x * 15); },
+  deg2hr: function(x) { return (x / 15); },
+  
+  sexagesimal: function(x, seconds_precision, degrees_width) {
+    /* 
+       seconds_precision : integer
+         decimals after the point, default 3.
+       
+       degrees_width : integer
+         Zero pad the degrees place to this width.  The default is
+         no padding.
+    */
+    if (seconds_precision === undefined) {
+      seconds_precision = 3;
+    }
+
+    var sign = (x < 0)?'-':'+';
+    var d = Math.floor(Math.abs(x));
+    var m = Math.floor((Math.abs(x) - d) * 60);
+    var s = ((Math.abs(x) - d) * 60 - m) * 60;
+
+    factor = Math.pow(10, seconds_precision);
+    s = Math.round(s * factor) / factor;
+    if (s >= 60) {
+      s -= 60;
+      m += 1;
+    }
+    
+    if (m >= 60) {
+      m -= 60;
+      d += 1;
+    }
+    
+    d = d.toFixed(0);
+    m = m.toFixed(0);
+    s = s.toFixed(seconds_precision);
+    
+    if (degrees_width === undefined) {
+      d = sign + d;
+    } else {
+      d = sign + '0'.repeat(degrees_width - d.length) + d;
+    }
+    
+    m = '0'.repeat(2 - m.length) + m;
+
+    if (seconds_precision == 0) {
+      s = '0'.repeat(2 - s.length) + s;
+    } else {
+      s = '0'.repeat(2 - s.length + seconds_precision + 1) + s;
+    }
+
+    return d + ':' + m + ':' + s;
+  }
+}
+
+/**********************************************************************/
+class Angle {
+  constructor(a, unit) {
+    /* a : angle magnitude, may be a string with the following formats:
+            1.2
+            01 23 45
+            1 23 45.6
+            1 2 3
+            1 2
+            12:34:56
+            12d34m56s
+            12d 34m 56s
+            12h 34m 56s
+       unit : 'deg', 'rad', or 'hr', default is 'rad'.
+    */
+
+    if (typeof a === 'string') {
+      this.a = Util.string2angle(a);
+    } else {
+      this.a = a;
+    }
+
+    switch(unit) {
+    case 'deg':
+      this.a = Util.deg2rad(this.a);
+      break;
+    case 'hr':
+      this.a = Util.hr2rad(this.a);
+      break;
+    default:
+    }
+  }
+  
+  valueOf() { return this.a; }
+  get deg () { return Util.rad2deg(this); }
+  get hr () { return Util.rad2hr(this); }
+  
+  dms(seconds_precision, degrees_width) {
+    return Util.sexagesimal(this.deg, seconds_precision, degrees_width);
   }
 
-  return sign * angle;
+  hms(seconds_precision, hours_width) {
+    return Util.sexagesimal(this.hr, seconds_precision, hours_width);
+  }
+
+  branchcut(cut, period) {
+    y = this % period;
+    y = (y < 0)?(y + period):(y);
+    return new Angle((y < cut)?(y):(y - period));
+  }
 }
 
 /**********************************************************************/
@@ -528,7 +623,7 @@ function newTarget(t) {
   };
   
   test = t.alt.map(function(x) { return (x > 30); });
-  var uptime = 24 / ctSteps * test.reduce(sum, 0);
+  var uptime = 24 / ctSteps * test.reduce(Util.sum, 0);
   row.uptime = hr2hm(uptime);
 
   if (plot.sun === undefined) {
@@ -537,7 +632,7 @@ function newTarget(t) {
     test = t.alt.map(function(x, i) {
       return (x > 30) * (plot.sun.alt[i] < -18);
     });
-    var darktime = 24 / ctSteps * test.reduce(sum, 0);
+    var darktime = 24 / ctSteps * test.reduce(Util.sum, 0);
     row.darktime = hr2hm(darktime);
   }
 
