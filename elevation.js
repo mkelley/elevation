@@ -142,7 +142,7 @@ var Util = {
       az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
     }
   
-    return {alt: new Angle(alt), az: new Angle(az)};
+    return {alt: new AngleArray(alt), az: new AngleArray(az)};
   },
 
   ct2lst: function(date0, lon) {
@@ -180,6 +180,65 @@ var Util = {
 
 /**********************************************************************/
 class Angle {
+  constructor(a, unit) {
+    /* 
+       a : Number
+         angle magnitude, may be a number or a string with the
+         following formats:
+            1.2
+            01 23 45
+            1 23 45.6
+            1 2 3
+            1 2
+            12:34:56
+            12d34m56s
+            12d 34m 56s
+            12h 34m 56s
+       unit : string
+         'deg', 'rad', or 'hr', default is 'rad'.
+    */
+
+    var b;
+    if (typeof a === 'string') {
+      b = Util.string2angle(a);
+    } else {
+      b = a;
+    }
+
+    switch(unit) {
+    case 'deg':
+      b = Util.deg2rad(b);
+      break;
+    case 'hr':
+      b = Util.hr2rad(b);
+      break;
+    default:
+    }
+    return b;
+  }
+  
+  get deg () { return Util.rad2deg(this.rad); }
+  get hr () { return Util.rad2hr(this.rad); }
+  get rad () { return this.a; }
+  
+  dms(seconds_precision, degrees_width) {
+    return Util.sexagesimal(this.deg, seconds_precision, degrees_width);
+  }
+
+  hms(seconds_precision, hours_width) {
+    return Util.sexagesimal(this.hr, seconds_precision, hours_width);
+  }
+
+  branchcut(cut, period, unit) {
+    if (unit === undefined) {
+      unit = 'rad';
+    }
+    return new AngleArray(Util.branchcut(this[unit], cut, period));
+  }
+}
+
+/**********************************************************************/
+class AngleArray {
   constructor(a, unit) {
     /* 
        a : Array 
@@ -236,7 +295,6 @@ class Angle {
     return this.hr.map(function(a) {
       return Util.sexagesimal(a, seconds_precision, hours_width);
     });
-    return s;
   }
 
   branchcut(cut, period, unit) {
@@ -282,6 +340,16 @@ class Angle {
     return this[unit].map(function(a) { return (a <thresh); });
   }
 }
+
+/**********************************************************************/
+//class Target {
+  /* name, ra (hr), dec (deg) */
+//  constructor(name, ra, dec) {
+//    this.name = name;
+//    this.ra = Util.hr2rad(ra);
+//    this.dec = Util.deg2rad(dec);
+//  }
+
 
 /**********************************************************************/
 class Plot {
@@ -605,18 +673,18 @@ function generateAltAz(coords) {
 
   var ct = [-Math.PI];
   for (var i=1; i<=ctSteps; i++) {
-    ct.push(ct[i-1] + ctStepSize);  // rad
+    ct.push(ct[i-1] + ctStepSize.rad);  // rad
   };
-  ct = new Angle(ct);
+  ct = new AngleArray(ct);
 
   var ha = ct.rad.map(function(x){
     return (x + lst0 - coords.ra) % (2 * Math.PI);
   });
-  ha = new Angle(ha);
+  ha = new AngleArray(ha);
   var altaz = hadec2altaz(ha, coords.dec, loc.lat);
   
   return {
-    ct: new Angle(ct.branchcut(12, 24, 'hr'))),
+    ct: new AngleArray(ct.branchcut(12, 24, 'hr'))),
     alt: altaz.alt,
     az: altaz.az,
   };
@@ -655,10 +723,7 @@ function loadTargets(targetList) {
 /**********************************************************************/
 function openFile(e) {
   var reader = new FileReader();
-
-  reader.onload = function(theFile) {
-    loadTargets(theFile.target.result);
-  };
+  reader.onload = function(f) { loadTargets(f.target.result); };
   reader.readAsText(e.target.files[0]);
 }
 
@@ -831,7 +896,7 @@ function rowCheckboxToggle(e) {
 /**********************************************************************/
 var DEBUG = false;
 var ctSteps = 360;
-var ctStepSize = new Angle([2 * Math.PI / ctSteps]);
+var ctStepSize = new Angle(2 * Math.PI / ctSteps);
 var eph;
 var plot;
 var table;
