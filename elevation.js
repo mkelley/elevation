@@ -96,6 +96,85 @@ var Util = {
     }
 
     return d + ':' + m + ':' + s;
+  },
+
+  hadec2altaz: function(ha, dec, lat) {
+    /* Convert hour angle and declination to altitude and azimuth.
+
+    Parameters
+    ----------
+    ha : Angle
+      Hour angle.
+    dec : float
+      Target declination. [rad]
+    lat : float
+      The latitude of the observer. [rad]
+
+    Returns
+    -------
+    alt, az : Angle
+      The altitude and azimuth of the object.
+
+    Notes
+    -----
+    Based on the IDL Astron hadec2altaz procedure by Chris O'Dell
+    (UW-Maddison).
+
+    */
+
+    var sha = ha.rad.map(Math.sin);
+    var cha = ha.rad.map(Math.cos);
+    var sdec = Math.sin(dec);
+    var cdec = Math.cos(dec);
+    var slat = Math.sin(lat);
+    var clat = Math.cos(lat);
+
+    var x = cha.map(function(x){return -x * cdec * slat + sdec * clat;});
+    var y = sha.map(function(x){return -x * cdec;});
+    var z = cha.map(function(x){return x * cdec * clat + sdec * slat});
+
+    var r;
+    var alt = [];
+    var az = [];
+    for (i=0; i<ha.length; i++) {
+      r = Math.sqrt(Math.pow(x[i], 2) + Math.pow(y[i], 2));
+      alt.push(Math.atan2(z[i], r));
+      az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
+    }
+  
+    return {alt: new Angle(alt), az: new Angle(az)};
+  },
+
+  ct2lst: function(date0, lon) {
+    /*  Convert civil time to local sidereal time.
+
+    Timezone is not considered.
+
+    See Meeus, Astronomical Algorithms.
+
+    Parameters
+    ----------
+    date0 : moment
+      The requested date (midnight civil time).
+    lon : float
+      The East longitude of the observer. [rad]
+
+    Returns
+    -------
+    lst : float
+      The local sidereal time.  [rad]
+
+    */
+    var tzoff = Util.hr2rad(date0.utcOffset() / 60);
+    var j2000 = moment.utc("2000-01-01 12:00");
+    var d = (date0 - j2000) / 86400 / 1000 - tzoff / 24;  // days
+    d = Math.round(d - 1.0) + 0.5; // UT date?
+    var y = d / 36525;  // years
+    var th0 = 280.46061837 + 360.98564736629 * d
+      + 0.000387933 * Math.pow(y, 2) - Math.pow(y, 3) / 38710000.0;
+    th0 = Util.deg2rad(th0 % 360);
+    var lst = (th0 + lon - tzoff) % (2 * Math.PI);
+    return lst;
   }
 }
 
@@ -169,6 +248,22 @@ class Angle {
       return Util.branchcut(a, cut, period);
     });
   }
+
+  rise(thresh, unit) {
+    /* Return the index of angle where it rises past thresh (default
+       radians). */
+    return this[unit].findIndex(function(this_alt, i, alt) {
+      return ((alt[i-1] < thresh) && (this_alt >= thresh));
+    });
+  }
+
+  set(thresh, unit) {
+    /* Return the index of alt where it rises past thresh (default
+       radians). */
+    return this[unit].findIndex(function(this_alt, i, alt) {
+      return ((alt[i-1] > thresh) && (this_alt <= thresh));
+    });
+  }
 }
 
 /**********************************************************************/
@@ -215,8 +310,8 @@ class Plot {
     var update = { shapes: [] };
     var alt = [-18, -6, 0];
     for (var i in alt) {
-      var t = [[-12, altaz.ct[altaz.alt.findIndex(findSet(alt[i]))]],
-	       [12, altaz.ct[altaz.alt.findIndex(findRise(alt[i]))]]];
+      var t = [[-12, this.sun.ct[this.sun.alt.set(alt[i])]],
+	       [12, this.sun.ct[this.sun.alt.rise(alt[i])]]];
       for (var j in t) {
 	var shape = {
 	  type: 'rect',
@@ -267,8 +362,8 @@ class Plot {
   target(t) {
     var data = {
       name: t.name,
-      x: t.ct,
-      y: t.alt,
+      x: t.ct.hr,
+      y: t.alt.deg,
       type: 'scatter',
       mode: 'lines',
       hoverinfo: 'name',
@@ -349,11 +444,11 @@ class Table {
   }
 
   darkitime(i) {
-    return string2angle(this.datatable.row(i).data().darktime);
+    return Util.string2angle(this.datatable.row(i).data().darktime);
   }
 
   uptime(i) {
-    return string2angle(this.datatable.row(i).data().uptime);
+    return Util.string2angle(this.datatable.row(i).data().uptime);
   }
 }
 
@@ -397,8 +492,16 @@ class IMCCE {
     var target = {};
     target.name = doc.find('PARAM[ID="targetname"]').attr('value');
     
-    target.ra = hr2rad(string2angle(this.getDataByField(doc, 'RA')));
-    target.dec = deg2rad(string2angle(this.getDataByField(doc, 'DEC')));
+    target.ra = Util.hr2rad(
+      Util.string2angle(
+	this.getDataByField(doc, 'RA')
+      )
+    );
+    target.dec = Util.deg2rad(
+      Util.string2angle(
+	this.getDataByField(doc, 'DEC')
+      )
+    );
     target.delta = parseFloat(this.getDataByField(doc, 'Distance'));
     target.mv = parseFloat(this.getDataByField(doc, 'Mv'));
     target.phase = parseFloat(this.getDataByField(doc, 'Phase'));
@@ -407,12 +510,6 @@ class IMCCE {
     var ddec = parseFloat(this.getDataByField(doc, 'dDEC'));
     target.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
     target.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
-
-    if (DEBUG) {
-      console.log(data);
-      console.log(eph);
-      console.log(target);
-    }
   
     done(target);
   }
@@ -446,8 +543,16 @@ class IMCCE {
     }
   
     var eph = lines[lines.length - 3].split(/\s+/);
-    target.ra = hr2rad(string2angle(eph[2] + ' ' + eph[3] + ' ' + eph[4]));
-    target.dec = deg2rad(string2angle(eph[5] + ' ' + eph[6] + ' ' + eph[7]));
+    target.ra = Util.hr2rad(
+      Util.string2angle(
+	eph[2] + ' ' + eph[3] + ' ' + eph[4]
+      )
+    );
+    target.dec = Util.deg2rad(
+      Util.string2angle(
+	eph[5] + ' ' + eph[6] + ' ' + eph[7]
+      )
+    );
 
     target.delta = parseFloat(eph[8]);
     target.mv = parseFloat(eph[9]);
@@ -456,12 +561,6 @@ class IMCCE {
     target.mu = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
 			  + Math.pow(parseFloat(eph[13]), 2)) * 60;
     target.ddot = parseFloat(eph[14]);
-
-    if (DEBUG) {
-      console.log(data);
-      console.log(eph);
-      console.log(target);
-    }
   
     done(target);
   }
@@ -475,15 +574,9 @@ function getDate() {
 /**********************************************************************/
 function getLocation() {
   // rad
-  var lat = deg2rad(parseFloat($('#elevation-latitude').val()));
-  var lon = deg2rad(parseFloat($('#elevation-longitude').val()));
+  var lat = Util.deg2rad(parseFloat($('#elevation-latitude').val()));
+  var lon = Util.deg2rad(parseFloat($('#elevation-longitude').val()));
   return { lat: lat, lon: lon };
-}
-
-/**********************************************************************/
-function getLST0(date, loc) {
-  // rad
-  return ct2lst(date, loc.lon);
 }
 
 /**********************************************************************/
@@ -491,33 +584,28 @@ function generateAltAz(coords) {
   // ra, dec in radians
   var date = getDate();
   var loc = getLocation();
-  var lst0 = getLST0(date, loc);  // rad
+  var lst0 = ct2lst(date, loc.lon);  // rad
 
   var ct = [-Math.PI];
   for (var i=1; i<=ctSteps; i++) {
     ct.push(ct[i-1] + ctStepSize);  // rad
   };
+  ct = new Angle(ct);
 
-  var ha = ct.map(function(x){
+  var ha = ct.rad.map(function(x){
     return (x + lst0 - coords.ra) % (2 * Math.PI);
   });
+  ha = new Angle(ha);
   var altaz = hadec2altaz(ha, coords.dec, loc.lat);
-
-  if (DEBUG) {
-    console.log(ct);
-    console.log(coords);
-    console.log(date);
-    console.log(loc);
-    console.log(lst0);
-    console.log(altaz);
-  }
   
   return {
-    ct: ct.map(rad2hr).map(branchcut(12, 24)),
-    alt: altaz.alt.map(rad2deg),
-    az: altaz.az.map(rad2deg),
+    ct: new Angle(ct.branchcut(12, 24, 'hr'))),
+    alt: altaz.alt,
+    az: altaz.az,
   };
 }
+
+// XXXXXXXXXXXXXXXXXXX Edited for Angle usage up to here XXXXXXXXXXXXXXXXXXXXxxxxxxXxx
 
 /**********************************************************************/
 function loadTargets(targetList) {
