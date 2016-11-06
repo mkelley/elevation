@@ -4,7 +4,7 @@ function error(msg) { $('#elevation-console').prepend('<p>' + msg + '</p>'); }
 /**********************************************************************/
 var Util = {
   sum: function(a, b) { return a + b; },
-  string2angle: function(s) {
+  sexagesimalToFloat: function(s) {
     var _s = s.trim().match(/^([-+]?)(.+)/);
     var sign = (_s[1] == '-')?-1:1;
     _s = _s[2];  // now just the magnitude
@@ -96,85 +96,6 @@ var Util = {
     }
 
     return d + ':' + m + ':' + s;
-  },
-
-  hadec2altaz: function(ha, dec, lat) {
-    /* Convert hour angle and declination to altitude and azimuth.
-
-    Parameters
-    ----------
-    ha : Angle
-      Hour angle.
-    dec : float
-      Target declination. [rad]
-    lat : float
-      The latitude of the observer. [rad]
-
-    Returns
-    -------
-    alt, az : Angle
-      The altitude and azimuth of the object.
-
-    Notes
-    -----
-    Based on the IDL Astron hadec2altaz procedure by Chris O'Dell
-    (UW-Maddison).
-
-    */
-
-    var sha = ha.rad.map(Math.sin);
-    var cha = ha.rad.map(Math.cos);
-    var sdec = Math.sin(dec);
-    var cdec = Math.cos(dec);
-    var slat = Math.sin(lat);
-    var clat = Math.cos(lat);
-
-    var x = cha.map(function(x){return -x * cdec * slat + sdec * clat;});
-    var y = sha.map(function(x){return -x * cdec;});
-    var z = cha.map(function(x){return x * cdec * clat + sdec * slat});
-
-    var r;
-    var alt = [];
-    var az = [];
-    for (i=0; i<ha.length; i++) {
-      r = Math.sqrt(Math.pow(x[i], 2) + Math.pow(y[i], 2));
-      alt.push(Math.atan2(z[i], r));
-      az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
-    }
-  
-    return {alt: new AngleArray(alt), az: new AngleArray(az)};
-  },
-
-  ct2lst: function(date0, lon) {
-    /*  Convert civil time to local sidereal time.
-
-    Timezone is not considered.
-
-    See Meeus, Astronomical Algorithms.
-
-    Parameters
-    ----------
-    date0 : moment
-      The requested date (midnight civil time).
-    lon : float
-      The East longitude of the observer. [rad]
-
-    Returns
-    -------
-    lst : float
-      The local sidereal time.  [rad]
-
-    */
-    var tzoff = Util.hr2rad(date0.utcOffset() / 60);
-    var j2000 = moment.utc("2000-01-01 12:00");
-    var d = (date0 - j2000) / 86400 / 1000 - tzoff / 24;  // days
-    d = Math.round(d - 1.0) + 0.5; // UT date?
-    var y = d / 36525;  // years
-    var th0 = 280.46061837 + 360.98564736629 * d
-      + 0.000387933 * Math.pow(y, 2) - Math.pow(y, 3) / 38710000.0;
-    th0 = Util.deg2rad(th0 % 360);
-    var lst = (th0 + lon - tzoff) % (2 * Math.PI);
-    return lst;
   }
 }
 
@@ -198,28 +119,29 @@ class Angle {
          'deg', 'rad', or 'hr', default is 'rad'.
     */
 
-    var b;
+    var a;
     if (typeof a === 'string') {
-      b = Util.string2angle(a);
+      a = Util.sexagesimalToFloat(a);
     } else {
-      b = a;
+      a = a;
     }
 
     switch(unit) {
     case 'deg':
-      b = Util.deg2rad(b);
+      a = Util.deg2rad(a);
       break;
     case 'hr':
-      b = Util.hr2rad(b);
+      a = Util.hr2rad(a);
       break;
     default:
     }
-    return b;
+    this._a = a;
   }
   
+
   get deg () { return Util.rad2deg(this.rad); }
   get hr () { return Util.rad2hr(this.rad); }
-  get rad () { return this.a; }
+  get rad () { return this._a; }
   
   dms(seconds_precision, degrees_width) {
     return Util.sexagesimal(this.deg, seconds_precision, degrees_width);
@@ -229,12 +151,12 @@ class Angle {
     return Util.sexagesimal(this.hr, seconds_precision, hours_width);
   }
 
-  branchcut(cut, period, unit) {
-    if (unit === undefined) {
-      unit = 'rad';
-    }
-    return new AngleArray(Util.branchcut(this[unit], cut, period));
+  branchcut(cut, period) {
+    return new Angle(Util.branchcut(this.rad, cut.rad, period.rad));
   }
+
+  add(a) { return new Angle(this.rad + a.rad); }
+  mod(a) { return new Angle(this.rad % a.rad); }
 }
 
 /**********************************************************************/
@@ -260,7 +182,7 @@ class AngleArray {
     var conv = function(a) {
       var b;
       if (typeof a === 'string') {
-	b = Util.string2angle(a);
+	b = Util.sexagesimalToFloat(a);
       } else {
 	b = a;
       }
@@ -297,21 +219,17 @@ class AngleArray {
     });
   }
 
-  branchcut(cut, period, unit) {
-    if (unit === undefined) {
-      unit = 'rad';
-    }
-
-    return this[unit].map(function(a){
-      return Util.branchcut(a, cut, period);
+  branchcut(cut, period) {
+    return new AngleArray(this.rad.map(function(a){
+      return Util.branchcut(a, cut.rad, period.rad);
     });
   }
 
-  rise(thresh, unit) {
+  rise(thresh) {
     /* Return the index of angle where it rises past thresh (default
        radians). */
-    return this[unit].findIndex(function(a, i, alt) {
-      return ((alt[i-1] < thresh) && (alt[i] >= thresh));
+    return this.rad.findIndex(function(a, i, alt) {
+      return ((alt[i-1] < thresh.rad) && (alt[i] >= thresh.rad));
     });
   }
 
@@ -320,36 +238,120 @@ class AngleArray {
     return this.rad.indexOf(Math.max.apply(null, this.rad));
   }
 
-  set(thresh, unit) {
+  set(thresh) {
     /* Return the index of alt where it sets past thresh (default
        radians). */
-    return this[unit].findIndex(function(a, i, alt) {
-      return ((alt[i-1] > thresh) && (alt[i] <= thresh));
+    return this.findIndex(function(a, i, alt) {
+      return ((alt[i-1] > thresh.rad) && (alt[i] <= thresh.rad));
     });
   }
 
-  greater(thresh, unit) {
+  greater(thresh) {
     /* Return true for each element greater than the threshold
        (default radians). */
-    return this[unit].map(function(a) { return (a > thresh); });
+    return this.rad.map(function(a) { return (a > thresh.rad); });
   }
 
-  less(thresh, unit) {
+  less(thresh) {
     /* Return true for each element less than the threshold
        (default radians). */
-    return this[unit].map(function(a) { return (a <thresh); });
+    return this.rad.map(function(a) { return (a < thresh.rad); });
   }
 }
 
 /**********************************************************************/
-//class Target {
-  /* name, ra (hr), dec (deg) */
-//  constructor(name, ra, dec) {
-//    this.name = name;
-//    this.ra = Util.hr2rad(ra);
-//    this.dec = Util.deg2rad(dec);
-//  }
+class Target {
+  /* name, ra (Angle), dec (Angle) */
+  constructor(name, ra, dec) {
+    this.name = name;
+    this.ra = ra;
+    this.dec = dec;
+    this.update();
+  }
 
+  update() {
+    /* Create ct, ha, alt, and az arrays.
+
+      Based, in part, on the IDL Astron hadec2altaz procedure by
+      Chris O'Dell (UW-Maddison).
+    */
+    var ct = [-Math.PI];
+    for (var i=1; i<=Config.ctSteps; i++) {
+      ct.push(ct[i-1] + Config.ctStepSize.rad);
+    };
+    this.ct = new AngleArray(ct)
+      .branchcut(new Angle(12, 'hr'), new Angle(24, 'hr'));
+
+    this.ha = new AngleArray(
+      this.ct.rad.map(function(x){
+	return (x + location.lst0.rad - this.ra.rad) % (2 * Math.PI);
+      });
+    );
+
+    var sha = this.ha.rad.map(Math.sin);
+    var cha = this.ha.rad.map(Math.cos);
+    var sdec = Math.sin(this.dec.rad);
+    var cdec = Math.cos(this.dec.rad);
+    var slat = Math.sin(this.lat.rad);
+    var clat = Math.cos(this.lat.rad);
+
+    var x = cha.map(function(x){return -x * cdec * slat + sdec * clat;});
+    var y = sha.map(function(x){return -x * cdec;});
+    var z = cha.map(function(x){return x * cdec * clat + sdec * slat});
+
+    var r;
+    var alt = [];
+    var az = [];
+    for (i=0; i<ha.length; i++) {
+      r = Math.sqrt(Math.pow(x[i], 2) + Math.pow(y[i], 2));
+      alt.push(Math.atan2(z[i], r));
+      az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
+    }
+    this.alt = new AngleArray(alt);
+    this.az = new AngleArray(az);
+  }
+}
+
+/**********************************************************************/
+class Location {
+  constructor(name, lat, lon, date) {
+    /* name : string
+       lat, lon : Angles
+       date : moment.js Date, midnight local time.
+    */
+    this.name = name;
+    this.lat = lat;
+    this.lon = lon;
+    this.date = date;
+    this._setLST();
+  }
+
+  _setLST() {
+    /*  Convert civil time to local sidereal time.
+
+    Timezone is not considered.
+
+    See Meeus, Astronomical Algorithms.
+
+    Returns
+    -------
+    lst : Angle
+      The local sidereal time.
+
+    */
+    var tzoff = new Angle(this.date.utcOffset() / 60, 'hr');
+    var j2000 = moment.utc("2000-01-01 12:00");
+    var d = (date0 - j2000) / 86400 / 1000 - tzoff.hr / 24;  // days
+    d = Math.round(d - 1.0) + 0.5; // UT date?
+    var y = d / 36525;  // years
+    var th0 = 280.46061837
+      + 360.98564736629 * d
+      + 0.000387933 * Math.pow(y, 2)
+      - Math.pow(y, 3) / 38710000.0;
+    th0 = new Angle(th0 % 360, 'deg');
+    this.lst0 = th0.add(this.lon).add(tzoff).mod(new Angle(2 * Math.PI));
+  }
+}
 
 /**********************************************************************/
 class Plot {
@@ -529,11 +531,11 @@ class Table {
   }
 
   darkitime(i) {
-    return Util.string2angle(this.datatable.row(i).data().darktime);
+    return Util.sexagesimalToFloat(this.datatable.row(i).data().darktime);
   }
 
   uptime(i) {
-    return Util.string2angle(this.datatable.row(i).data().uptime);
+    return Util.sexagesimalToFloat(this.datatable.row(i).data().uptime);
   }
 }
 
@@ -578,12 +580,12 @@ class IMCCE {
     target.name = doc.find('PARAM[ID="targetname"]').attr('value');
     
     target.ra = Util.hr2rad(
-      Util.string2angle(
+      Util.sexagesimalToFloat(
 	this.getDataByField(doc, 'RA')
       )
     );
     target.dec = Util.deg2rad(
-      Util.string2angle(
+      Util.sexagesimalToFloat(
 	this.getDataByField(doc, 'DEC')
       )
     );
@@ -629,12 +631,12 @@ class IMCCE {
   
     var eph = lines[lines.length - 3].split(/\s+/);
     target.ra = Util.hr2rad(
-      Util.string2angle(
+      Util.sexagesimalToFloat(
 	eph[2] + ' ' + eph[3] + ' ' + eph[4]
       )
     );
     target.dec = Util.deg2rad(
-      Util.string2angle(
+      Util.sexagesimalToFloat(
 	eph[5] + ' ' + eph[6] + ' ' + eph[7]
       )
     );
@@ -665,32 +667,6 @@ function getLocation() {
 }
 
 /**********************************************************************/
-function generateAltAz(coords) {
-  // ra, dec in radians
-  var date = getDate();
-  var loc = getLocation();
-  var lst0 = ct2lst(date, loc.lon);  // rad
-
-  var ct = [-Math.PI];
-  for (var i=1; i<=ctSteps; i++) {
-    ct.push(ct[i-1] + ctStepSize.rad);  // rad
-  };
-  ct = new AngleArray(ct);
-
-  var ha = ct.rad.map(function(x){
-    return (x + lst0 - coords.ra) % (2 * Math.PI);
-  });
-  ha = new AngleArray(ha);
-  var altaz = hadec2altaz(ha, coords.dec, loc.lat);
-  
-  return {
-    ct: new AngleArray(ct.branchcut(12, 24, 'hr'))),
-    alt: altaz.alt,
-    az: altaz.az,
-  };
-}
-
-/**********************************************************************/
 function loadTargets(targetList) {
   var lines = targetList.split('\n');
 
@@ -709,8 +685,8 @@ function loadTargets(targetList) {
     if (row[1].trim() == 'f') {
       newTarget({
 	name: row[0],
-	ra: Util.hr2rad(Util.string2angle(row[2])),
-	dec: Util.deg2rad(Util.string2angle(row[3]))
+	ra: Util.hr2rad(Util.sexagesimalToFloat(row[2])),
+	dec: Util.deg2rad(Util.sexagesimalToFloat(row[3]))
       });
     } else {
       setTimeout(function(name, type, done) { eph.get(name, type, done); },
@@ -802,12 +778,12 @@ function addFixedTargetCallback(e) {
   var t = {
     name: $('#elevation-add-fixed-target-name').val(),
     ra: Util.hr2rad(
-      Util.string2angle(
+      Util.sexagesimalToFloat(
 	$('#elevation-add-fixed-target-ra').val()
       )
     ),
     dec: Util.deg2rad(
-      Util.string2angle(
+      Util.sexagesimalToFloat(
 	$('#elevation-add-fixed-target-dec').val()
       )
     )
@@ -894,18 +870,23 @@ function rowCheckboxToggle(e) {
 
 
 /**********************************************************************/
-var DEBUG = false;
-var ctSteps = 360;
-var ctStepSize = new Angle(2 * Math.PI / ctSteps);
+var Config = {
+  debug: false,
+  ctSteps: 360,
+  ctStepSize: new Angle(2 * Math.PI / ctSteps)
+}
+
 var eph;
 var plot;
 var table;
+var location;
 
 $(document).ready(
   function() {
     eph = new IMCCE();
     plot = new Plot();
     table = new Table();
+    updateLocation();
 
     $('#elevation-row-selection').change(rowSelectionCallback);
     $('#elevation-plot-selected').click(function(){table.plot();});
