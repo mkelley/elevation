@@ -576,15 +576,17 @@ class Table {
       row.mu = '';
     }
 
-    var transit = t.ct.hr[t.alt.transit()];
+    var transit = t.ct
+	.branchcut(new Angle(0), new Angle(24, 'hr'))
+	.hr[t.alt.transit()];
     row.transit = {
-      display: Util.sexagesimal(transit, 0, 2).substr(0, 5),
+      display: Util.sexagesimal(transit, 0, 2).substr(0, 6),
       hour: transit
     };
   
     var up = t.alt.greater(30, 'deg');
     var uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
-    row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 5);
+    row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 6);
 
     if (plot.sun === undefined) {
       row.darktime = 0;
@@ -592,7 +594,7 @@ class Table {
       var dark = plot.sun.alt.less(-18, 'deg');
       var test = up.map(function(x, i) { return x * dark[i]; });
       var darktime = 24 / Config.ctSteps * test.reduce(Util.sum, 0);
-      row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 5);
+      row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 6);
     }
 
     var tr = this.datatable.row.add(row)
@@ -903,7 +905,7 @@ $(document).ready(
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = false;
+Config.debug = true;
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 
