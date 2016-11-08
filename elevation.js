@@ -1,9 +1,15 @@
 /**********************************************************************/
-function error(msg) { $('#elevation-console').prepend('<p>' + msg + '</p>'); }
-
-/**********************************************************************/
 var Util = {
+  msg: function(s, error) {
+    var p = $('<p>' + s + '</p>');
+    if (error) {
+      p.addClass('error');
+    }
+    $('#elevation-console').prepend(p);
+  },
+  
   sum: function(a, b) { return a + b; },
+  
   sexagesimalToFloat: function(s) {
     var _s = s.trim().match(/^([-+]?)(.+)/);
     var sign = (_s[1] == '-')?-1:1;
@@ -96,7 +102,42 @@ var Util = {
     }
 
     return d + ':' + m + ':' + s;
+  },
+
+  addTargetToTable: function(t) { table.add(t); },
+  newMovingTarget: function(name, type, done) { eph.get(name, type, done); },
+  loadTargets: function(targetList) {
+    // Parse a CSV table and add any targets to Elevation's target table.
+    var lines = targetList.split('\n');
+    var delay = 0;
+    for (var i in lines) {
+      if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
+	continue;
+      }
+
+      var row = lines[i].split(',');
+      if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
+	Util.msg("Bad row length: " + lines[i], true)
+	continue;
+      }
+
+      if (row[1].trim() == 'f') {
+	table.addTarget(
+	  new Target(row[0], new Angle(row[2], 'hr'), new Angle(row[3], 'deg'))
+	);
+      } else {
+	setTimeout(Util.newMovingTarget, delay * Config.ajaxDelay,
+		   row[0], row[1], Util.addTargetToTable);
+	delay += 1;
+      }
+    }
+  },
+
+  date: function() {
+    return moment.tz($('#elevation-date').val(),
+		     $('#elevation-timezone').val());
   }
+
 }
 
 /**********************************************************************/
@@ -157,6 +198,7 @@ class Angle {
 
   add(a) { return new Angle(this.rad + a.rad); }
   mod(a) { return new Angle(this.rad % a.rad); }
+  sub(a) { return new Angle(this.rad - a.rad); }
 }
 
 /**********************************************************************/
@@ -200,12 +242,12 @@ class AngleArray {
       return b;
     };
 
-    this.data = a.map(conv);
+    this._a = a.map(conv);
   }
   
-  get deg () { return this.data.map(Util.rad2deg); }
-  get hr () { return this.data.map(Util.rad2hr); }
-  get rad () { return this.data; }
+  get deg () { return this._a.map(Util.rad2deg); }
+  get hr () { return this._a.map(Util.rad2hr); }
+  get rad () { return this._a; }
   
   dms(seconds_precision, degrees_width) {
     return this.deg.map(function(a) {
@@ -222,7 +264,7 @@ class AngleArray {
   branchcut(cut, period) {
     return new AngleArray(this.rad.map(function(a){
       return Util.branchcut(a, cut.rad, period.rad);
-    });
+    }));
   }
 
   rise(thresh) {
@@ -241,7 +283,7 @@ class AngleArray {
   set(thresh) {
     /* Return the index of alt where it sets past thresh (default
        radians). */
-    return this.findIndex(function(a, i, alt) {
+    return this.rad.findIndex(function(a, i, alt) {
       return ((alt[i-1] > thresh.rad) && (alt[i] <= thresh.rad));
     });
   }
@@ -261,51 +303,53 @@ class AngleArray {
 
 /**********************************************************************/
 class Target {
-  /* name, ra (Angle), dec (Angle) */
-  constructor(name, ra, dec) {
+  /* name, ra (Angle), dec (Angle), object with any other attributes */
+  constructor(name, ra, dec, attr) {
     this.name = name;
     this.ra = ra;
     this.dec = dec;
+    for (var k in attr) {
+      this[k] = attr[k];
+    }
     this.update();
   }
 
   update() {
-    /* Create ct, ha, alt, and az arrays.
+    /* Create/update ct, ha, alt, and az arrays.
 
       Based, in part, on the IDL Astron hadec2altaz procedure by
       Chris O'Dell (UW-Maddison).
     */
-    var ct = [-Math.PI];
-    for (var i=1; i<=Config.ctSteps; i++) {
-      ct.push(ct[i-1] + Config.ctStepSize.rad);
-    };
-    this.ct = new AngleArray(ct)
+    var _ct = Array.apply(null, Array(Config.ctSteps))
+      .map(function(x, i){
+	return -Math.PI + i * Config.ctStepSize.rad;
+      });
+    this.ct = new AngleArray(_ct)
       .branchcut(new Angle(12, 'hr'), new Angle(24, 'hr'));
 
     this.ha = new AngleArray(
       this.ct.rad.map(function(x){
-	return (x + location.lst0.rad - this.ra.rad) % (2 * Math.PI);
-      });
-    );
+	return (x + observatory.lst0.rad - this.ra.rad) % (2 * Math.PI);
+      }, this));
 
     var sha = this.ha.rad.map(Math.sin);
     var cha = this.ha.rad.map(Math.cos);
     var sdec = Math.sin(this.dec.rad);
     var cdec = Math.cos(this.dec.rad);
-    var slat = Math.sin(this.lat.rad);
-    var clat = Math.cos(this.lat.rad);
+    var slat = Math.sin(observatory.lat.rad);
+    var clat = Math.cos(observatory.lat.rad);
 
-    var x = cha.map(function(x){return -x * cdec * slat + sdec * clat;});
-    var y = sha.map(function(x){return -x * cdec;});
-    var z = cha.map(function(x){return x * cdec * clat + sdec * slat});
-
-    var r;
+    var x, y, z, r;
     var alt = [];
     var az = [];
-    for (i=0; i<ha.length; i++) {
-      r = Math.sqrt(Math.pow(x[i], 2) + Math.pow(y[i], 2));
-      alt.push(Math.atan2(z[i], r));
-      az.push(Math.atan2(y[i], x[i]) % (2 * Math.PI));
+    for (var i = 0; i < Config.ctSteps; i += 1) {
+      x = -cha[i] * cdec * slat + sdec * clat;
+      y = -sha[i] * cdec;
+      z = cha[i] * cdec * clat + sdec * slat;
+      r = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+
+      alt.push(Math.atan2(z, r));
+      az.push(Math.atan2(y, x) % (2 * Math.PI));
     }
     this.alt = new AngleArray(alt);
     this.az = new AngleArray(az);
@@ -313,7 +357,7 @@ class Target {
 }
 
 /**********************************************************************/
-class Location {
+class Observatory {
   constructor(name, lat, lon, date) {
     /* name : string
        lat, lon : Angles
@@ -323,11 +367,11 @@ class Location {
     this.lat = lat;
     this.lon = lon;
     this.date = date;
-    this._setLST();
+    this._setLST0();
   }
 
-  _setLST() {
-    /*  Convert civil time to local sidereal time.
+  _setLST0() {
+    /*  Convert civil time to local sidereal time at midnight.
 
     Timezone is not considered.
 
@@ -340,16 +384,16 @@ class Location {
 
     */
     var tzoff = new Angle(this.date.utcOffset() / 60, 'hr');
-    var j2000 = moment.utc("2000-01-01 12:00");
-    var d = (date0 - j2000) / 86400 / 1000 - tzoff.hr / 24;  // days
-    d = Math.round(d - 1.0) + 0.5; // UT date?
-    var y = d / 36525;  // years
+    var d = Math.round(this.date / 86400 / 1000);  // seconds to days
+    var j2000 = moment.utc("2000-01-01 12:00");  // J2000 epoch
+    var d0 = (d - j2000 / 86400 / 1000);  // days since J2000 epoch
+    var T0 = d0 / 365.25;  // years since J2000 epoch
     var th0 = 280.46061837
-      + 360.98564736629 * d
-      + 0.000387933 * Math.pow(y, 2)
-      - Math.pow(y, 3) / 38710000.0;
-    th0 = new Angle(th0 % 360, 'deg');
-    this.lst0 = th0.add(this.lon).add(tzoff).mod(new Angle(2 * Math.PI));
+	+ 360.98564736629 * d0
+	+ 0.000387933 * Math.pow(T0, 2)
+	- Math.pow(T0, 3) / 38710000.0;
+    th0 = new Angle(th0 % 360.0, 'deg');
+    this.lst0 = th0.add(this.lon).sub(tzoff).mod(new Angle(2 * Math.PI));
   }
 }
 
@@ -382,47 +426,17 @@ class Plot {
     Plotly.newPlot('elevation-plot', [], layout);
   }
   
-  updateSun(s) {
-    if (s === undefined) {
-      s = this.sun;
-    } else {
-      this.sun = s;
-    }
+  guides() {
+    var shapes = [];
+    Array.prototype.push.apply(shapes, this.sunGuides());
+    Array.prototype.push.apply(shapes, this.airmassGuides());
 
-    var altaz = generateAltAz(s);
-    this.sun.ct = altaz.ct;
-    this.sun.alt = altaz.alt;
-    this.sun.az = altaz.az;
-
-    var update = { shapes: [] };
-    var alt = [-18, -6, 0];
-    for (var i in alt) {
-      var t = [[-12, this.sun.ct[this.sun.alt.set(alt[i])]],
-	       [12, this.sun.ct[this.sun.alt.rise(alt[i])]]];
-      for (var j in t) {
-	var shape = {
-	  type: 'rect',
-	  xref: 'x',
-	  x0: t[j][0],
-	  x1: t[j][1],
-	  yref: 'paper',
-	  y0: 0,
-	  y1: 1,
-	  fillcolor: '#87cefa',
-	  opacity: 0.2,
-	  line: { width: 0 }
-	};
-	update.shapes.push(shape);
-      }
-    }
-    Array.prototype.push.apply(update.shapes, this.airmassGuides());
-
-    this.clearSun();
-    Plotly.relayout('elevation-plot', update);
+    this.clearGuides();
+    Plotly.relayout('elevation-plot', {shapes: shapes});
   }
 
-  clearSun() {
-    Plotly.relayout('elevation-plot', {shapes:[]});
+  clearGuides() {
+    Plotly.relayout('elevation-plot', {shapes: []});
   }
 
   airmassGuides() {
@@ -446,7 +460,34 @@ class Plot {
     return shapes;
   }
 
-  target(t) {
+  sunGuides() {
+    var shapes = [];
+    var alt = [new Angle(-18, 'deg'),
+	       new Angle(-6, 'deg'),
+	       new Angle(0)];
+    for (var i in alt) {
+      var t = [[-12, this.sun.ct.hr[this.sun.alt.set(alt[i])]],
+	       [12, this.sun.ct.hr[this.sun.alt.rise(alt[i])]]];
+      for (var j in t) {
+	var shape = {
+	  type: 'rect',
+	  xref: 'x',
+	  x0: t[j][0],
+	  x1: t[j][1],
+	  yref: 'paper',
+	  y0: 0,
+	  y1: 1,
+	  fillcolor: '#87cefa',
+	  opacity: 0.2,
+	  line: { width: 0 }
+	};
+	shapes.push(shape);
+      }
+    }
+    return shapes;
+  }
+
+  add(t) {
     var data = {
       name: t.name,
       x: t.ct.hr,
@@ -461,7 +502,7 @@ class Plot {
   clear() {
     var plotdiv = $('#elevation-plot')[0];
     var traces = [];
-    for (var i=0; i<plotdiv.data.length; i++) {
+    for (var i = 0; i < plotdiv.data.length; i += 1) {
       traces.push(i);
     }
     Plotly.deleteTraces('elevation-plot', traces);
@@ -507,23 +548,58 @@ class Table {
     })
   }
 
-  add(row) {
-    var tr = this.datatable.row.add(row)
-      .draw()
-      .node();
-    
-    $(tr).click(rowCheckboxToggle);
-  }
+  add(t) {
+    var row = {};
 
-  plot() {
-    $('#elevation-target-table')
-      .find(':checkbox').each(
-	function(i) {
-	  if (this.checked) {
-	    plot.target(table.datatable.row(i).data().target_data);
-	  }
-	}
-      );
+    row.target_data = t;
+    row.checkbox = '<input type="checkbox" checked="true">';
+    row.target = t.name;
+    row.ra = t.ra.hms(1, 2);
+    row.dec = {
+      display: t.dec.dms(0, 2),
+      degree: Util.rad2deg(t.dec)
+    };
+
+    if ('mv' in t) {
+      row.mv = t.mv.toFixed(1);
+      row.delta = t.delta.toFixed(2);
+      row.ddot = t.ddot.toFixed(1);
+      row.phase = t.phase.toFixed(0);
+      row.elong = t.elong.toFixed(0);
+      row.mu = t.mu.toFixed(0);
+    } else {
+      row.mv = '';
+      row.delta = '';
+      row.ddot = '';
+      row.phase = '';
+      row.elong = '';
+      row.mu = '';
+    }
+
+    var transit = t.ct.hr[t.alt.transit()];
+    row.transit = {
+      display: Util.sexagesimal(transit, 0, 2).substr(0, 5),
+      hour: transit
+    };
+  
+    var up = t.alt.greater(30, 'deg');
+    var uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
+    row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 5);
+
+    if (plot.sun === undefined) {
+      row.darktime = 0;
+    } else {
+      var dark = plot.sun.alt.less(-18, 'deg');
+      var test = up.map(function(x, i) { return x * dark[i]; });
+      var darktime = 24 / Config.ctSteps * test.reduce(Util.sum, 0);
+      row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 5);
+    }
+
+    var tr = this.datatable.row.add(row)
+	.draw()
+	.node();
+    
+    $(tr).click(Callback.rowCheckboxToggle);
   }
 
   clear() {
@@ -534,17 +610,29 @@ class Table {
     return Util.sexagesimalToFloat(this.datatable.row(i).data().darktime);
   }
 
+  plot() {
+    $('#elevation-target-table')
+      .find(':checkbox').each(
+	function(i) {
+	  if (this.checked) {
+	    plot.add(table.datatable.row(i).data().target_data);
+	  }
+	}
+      );
+  }
+
   uptime(i) {
     return Util.sexagesimalToFloat(this.datatable.row(i).data().uptime);
   }
+
 }
 
 /**********************************************************************/
 class IMCCE {
   get(name, type, done) {
-    var date = getDate();
+    var date = observatory.date;
     if (isNaN(date)) {
-      error(Date() + ': Invalid date.');
+      Util.msg(Date() + ': Invalid date.', true);
       return;
     }
     
@@ -572,33 +660,25 @@ class IMCCE {
 
     var status = doc.find('INFO[name="QUERY_STATUS"]');
     if (status.attr('value') == 'ERROR') {
-      error(status.text());
+      Util.msg(status.text(), true);
       return;
     }
 
-    var target = {};
-    target.name = doc.find('PARAM[ID="targetname"]').attr('value');
-    
-    target.ra = Util.hr2rad(
-      Util.sexagesimalToFloat(
-	this.getDataByField(doc, 'RA')
-      )
-    );
-    target.dec = Util.deg2rad(
-      Util.sexagesimalToFloat(
-	this.getDataByField(doc, 'DEC')
-      )
-    );
-    target.delta = parseFloat(this.getDataByField(doc, 'Distance'));
-    target.mv = parseFloat(this.getDataByField(doc, 'Mv'));
-    target.phase = parseFloat(this.getDataByField(doc, 'Phase'));
-    target.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
+    var name = doc.find('PARAM[ID="targetname"]').attr('value');
+    var ra = new Angle(this.getDataByField(doc, 'RA'), 'hr');
+    var dec = new Angle(this.getDataByField(doc, 'DEC'), 'deg');
+
+    var attr = {};
+    attr.delta = parseFloat(this.getDataByField(doc, 'Distance'));
+    attr.mv = parseFloat(this.getDataByField(doc, 'Mv'));
+    attr.phase = parseFloat(this.getDataByField(doc, 'Phase'));
+    attr.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
     var dra = parseFloat(this.getDataByField(doc, 'dRAcosDEC'));
     var ddec = parseFloat(this.getDataByField(doc, 'dDEC'));
-    target.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
-    target.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
-  
-    done(target);
+    attr.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
+    attr.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
+
+    done(new Target(name, ra, dec, attr));
   }
 
   processTXT(data, done) {
@@ -612,307 +692,222 @@ class IMCCE {
 	  msg += lines[i];
 	}
       }
-      error(msg);
+      Util.msg(msg, true);
       return;
     }
-    
-    var target = {};
-    target.name = lines[3].substr(2);
 
-    var m = target.name.match(/Asteroid: (.+)/);
+    // Parse name from the comments
+    var name = lines[3].substr(2);
+    var m = name.match(/Asteroid: (.+)/);
     if (m !== null) {
-      target.name = m[1];
+      name = m[1];
     }
 
-    var m = target.name.match(/Comet:.*\((.+)\)/);
+    var m = name.match(/Comet:.*\((.+)\)/);
     if (m !== null) {
-      target.name = m[1];
+      name = m[1];
     }
-  
+
+    // define RA, Dec
     var eph = lines[lines.length - 3].split(/\s+/);
-    target.ra = Util.hr2rad(
-      Util.sexagesimalToFloat(
-	eph[2] + ' ' + eph[3] + ' ' + eph[4]
-      )
-    );
-    target.dec = Util.deg2rad(
-      Util.sexagesimalToFloat(
-	eph[5] + ' ' + eph[6] + ' ' + eph[7]
-      )
-    );
+    var ra = new Angle(eph[2] + ' ' + eph[3] + ' ' + eph[4], 'hr');
+    var dec = new Angle(eph[5] + ' ' + eph[6] + ' ' + eph[7], 'deg');
 
-    target.delta = parseFloat(eph[8]);
-    target.mv = parseFloat(eph[9]);
-    target.phase = parseFloat(eph[10]);
-    target.elong = parseFloat(eph[11]);
-    target.mu = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
-			  + Math.pow(parseFloat(eph[13]), 2)) * 60;
-    target.ddot = parseFloat(eph[14]);
-  
-    done(target);
+    // Define all additional attributes from ephemeris
+    var attr = {};
+    attr.delta = parseFloat(eph[8]);
+    attr.mv = parseFloat(eph[9]);
+    attr.phase = parseFloat(eph[10]);
+    attr.elong = parseFloat(eph[11]);
+    attr.mu = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
+			+ Math.pow(parseFloat(eph[13]), 2)) * 60;
+    attr.ddot = parseFloat(eph[14]);
+
+    done(new Target(name, ra, dec, attr));
   }
 }
 
 /**********************************************************************/
-function getDate() {
-  return moment.tz($('#elevation-date').val(), $('#elevation-timezone').val());
+class DummyEphemeris {
+  get(name, type, done) {
+    var date = Util.date();
+    if (isNaN(date)) {
+      Util.msg(Date() + ': Invalid date.', true);
+      return;
+    }
+
+    var t;
+    if (name == 'sun') {
+      Util.msg('Using the Sun position for 2016 Nov 17.');
+      var ra = new Angle('14:51:29.3', 'hr');
+      var dec = new Angle('-16:25:58', 'deg');
+    } else {
+      var ra = new Angle(Math.random() * Math.PI * 2);
+      var dec = new Angle((Math.random() - 0.5) * Math.PI);
+    }
+    done(new Target(name, ra, dec));
+  }
 }
 
 /**********************************************************************/
-function getLocation() {
-  // rad
-  var lat = Util.deg2rad(parseFloat($('#elevation-latitude').val()));
-  var lon = Util.deg2rad(parseFloat($('#elevation-longitude').val()));
-  return { lat: lat, lon: lon };
-}
+var Callback = {
+  addMovingTarget: function(e) {
+    var name = $('#elevation-add-moving-target-name').val();
+    var type = $('#elevation-add-moving-target-type').val();
+    eph.get(name, type, Util.addTargetToTable);
+  },
 
-/**********************************************************************/
-function loadTargets(targetList) {
-  var lines = targetList.split('\n');
+  addFixedTarget: function(e) {
+    t = new Target(
+      $('#elevation-add-fixed-target-name').val(),
+      new Angle($('#elevation-add-fixed-target-ra').val(), 'hr'),
+      new Angle($('#elevation-add-fixed-target-dec').val(), 'deg')
+    );
+    table.add(t);
+  },
+  
+  openFile: function(e) {
+    var reader = new FileReader();
+    reader.onload = function(f) { Util.loadTargets(f.target.result); };
+    reader.readAsText(e.target.files[0]);
+  },
 
-  var delay = 0;
-  for (var i in lines) {
-    if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
-      continue;
+  loadTargetSetButton: function(e) {
+    var button = $(e.target);
+    $('#elevation-target-list').val(button.data('targets'));
+    Util.loadTargets(button.data('targets'));
+  },
+  
+  rowCheckboxToggle: function(e) {
+    if (e.target.tagName == 'INPUT') { return; }
+    $(e.target)
+      .parent()
+      .find(':checkbox')
+      .each(function() {
+	this.checked = !this.checked;
+      });
+  },
+
+  selectRows: function(e) {
+    var _table = $('#elevation-target-table');
+    switch (e.target.value) {
+    case "all":
+      _table.find(':checkbox').each(function(){this.checked = true;});
+      break;
+    case "none":
+      _table.find(':checkbox').each(function(){this.checked = false;});
+      break;
+    case "airmass":
+      _table.find(':checkbox').each(
+	function(i) {
+	  var up = table.uptime(i);
+	  if (up > 0) {
+	    this.checked = true;
+	  } else {
+	    this.checked = false;
+	  }
+	});
+      break;
+    case "dark":
+      _table.find(':checkbox').each(
+	function(i) {
+	  var dark = table.darktime(i);
+	  if (dark > 0) {
+	    this.checked = true;
+	  } else {
+	    this.checked = false;
+	  }
+	});
+      break;
+    default:
     }
+    e.target.value = "select";
+  },
 
-    var row = lines[i].split(',');
-    if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
-      error("Bad row length: " + lines[i])
-      continue;
+  updateObservatory: function(e) {
+    plot.clear();
+
+    var date = Util.date();
+    var lat = new Angle(parseFloat($('#elevation-latitude').val()), 'deg');
+    var lon = new Angle(parseFloat($('#elevation-longitude').val()), 'deg');
+    var lastDate;
+    if (observatory !== undefined) {
+      lastDate = observatory.date;
     }
+    observatory = new Observatory('', lat, lon, date);
 
-    if (row[1].trim() == 'f') {
-      newTarget({
-	name: row[0],
-	ra: Util.hr2rad(Util.sexagesimalToFloat(row[2])),
-	dec: Util.deg2rad(Util.sexagesimalToFloat(row[3]))
+    // If the date has changed or the Sun is not yet defined, get a
+    // new Sun RA and Dec.
+    var updatedSun = false;
+    if ((plot.sun === undefined) || (date != lastDate)) {
+      eph.get('sun', 'p', function(sun){
+	plot.sun = sun;
+	plot.guides();
       });
     } else {
-      setTimeout(function(name, type, done) { eph.get(name, type, done); },
-		 delay * 300, row[0], row[1], newTarget);
-      delay++;
+      plot.guides()
     }
-  }
-}
 
-/**********************************************************************/
-function openFile(e) {
-  var reader = new FileReader();
-  reader.onload = function(f) { loadTargets(f.target.result); };
-  reader.readAsText(e.target.files[0]);
-}
-
-/**********************************************************************/
-function loadTargetSetButton(e) {
-  var button = $(e.target);
-  $('#elevation-target-list').val(button.data('targets'));
-  loadTargets(button.data('targets'));
-}
-
-/**********************************************************************/
-function newTarget(t) {
-  var altaz = generateAltAz(t);
-  t.ct = altaz.ct;
-  t.alt = altaz.alt;
-  t.az = altaz.az;
-
-  var row = {};
-
-  row.target_data = t;
-  row.checkbox = '<input type="checkbox" checked="true">';
-  row.target = t.name;
-  row.ra = Util.sexagesimal(Util.rad2hr(t.ra), 1, 2);
-  row.dec = {
-    display: Util.sexagesimal(Util.rad2deg(t.dec), 0, 2),
-    degree: Util.rad2deg(t.dec)
-  };
-
-  if ('mv' in t) {
-    row.mv = t.mv.toFixed(1);
-    row.delta = t.delta.toFixed(2);
-    row.ddot = t.ddot.toFixed(1);
-    row.phase = t.phase.toFixed(0);
-    row.elong = t.elong.toFixed(0);
-    row.mu = t.mu.toFixed(0);
-  } else {
-    row.mv = '';
-    row.delta = '';
-    row.ddot = '';
-    row.phase = '';
-    row.elong = '';
-    row.mu = '';
-  }
-
-  var transit = t.ct.hr[t.alt.transit()];
-  row.transit = {
-    display: Util.sexagesimal(transit, 0, 2).substr(0, 5),
-    hour: transit
-  };
-  
-  var up = t.alt.greater(30, 'deg');
-  var uptime = 24 / ctSteps * test.reduce(Util.sum, 0);
-  row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 5);
-
-  if (plot.sun === undefined) {
-    row.darktime = 0;
-  } else {
-    var dark = plot.sun.alt.less(-18, 'deg');
-    var test = up.map(function(x, i) { return x * dark[i]; });
-    var darktime = 24 / ctSteps * test.reduce(Util.sum, 0);
-    row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 5);
-  }
-
-  table.add(row);
-}
-
-/**********************************************************************/
-function addMovingTargetCallback(e) {
-  var name = $('#elevation-add-moving-target-name').val();
-  var type = $('#elevation-add-moving-target-type').val();
-  eph.get(name, type, newTarget);
-}
-
-/**********************************************************************/
-function addFixedTargetCallback(e) {
-  var t = {
-    name: $('#elevation-add-fixed-target-name').val(),
-    ra: Util.hr2rad(
-      Util.sexagesimalToFloat(
-	$('#elevation-add-fixed-target-ra').val()
-      )
-    ),
-    dec: Util.deg2rad(
-      Util.sexagesimalToFloat(
-	$('#elevation-add-fixed-target-dec').val()
-      )
-    )
-  };
-  newTarget(t);
-}
-
-/**********************************************************************/
-function updateLocationCallback(e) {
-  if ((e.target.id == 'elevation-date') || (plot.sun === undefined)) {
-    eph.get('sun', 'p', function(data){ plot.updateSun(data); });
-  }
-  
-  if (e.target.id == 'elevation-date') {
-    plot.clear();
-  } else if ((e.target.id == 'elevation-update-location-button')
-	     || (e.target.classList.contains('elevation-observatory'))) {
-    plot.clear();
-    plot.updateSun();
-
-    var targets = $('.elevation-target');
-    if (targets.length > 0) {
-      var coords = targets.map(function(i, x) {
+    // If any targets have been defined, update them.
+    var rows = $('.elevation-target');
+    if (rows.length > 0) {
+      var targets = rows.map(function(i, x) {
 	return $(x).data('target');
       });
-      plot.clear();
-      for (var i=0; i<coords.length; i++) {
-	newTarget(coords[i]);
+      for (var i = 0; i < targets.length; i += 1) {
+	targets[i].update();
       }
     }
   }
 }
 
 /**********************************************************************/
-function rowSelectionCallback(e) {
-  var _table = $('#elevation-target-table');
-  switch (e.target.value) {
-  case "all":
-    _table.find(':checkbox').each(function(){this.checked = true;});
-    break;
-  case "none":
-    _table.find(':checkbox').each(function(){this.checked = false;});
-    break;
-  case "airmass":
-    _table.find(':checkbox').each(
-      function(i) {
-	var up = table.uptime(i);
-	if (up > 0) {
-	  this.checked = true;
-	} else {
-	  this.checked = false;
-	}
-      });
-    break;
-  case "dark":
-    _table.find(':checkbox').each(
-      function(i) {
-	var dark = table.darktime(i);
-	if (dark > 0) {
-	  this.checked = true;
-	} else {
-	  this.checked = false;
-	}
-      });
-    break;
-  default:
-  }
-  e.target.value = "select";
-}
-
-/**********************************************************************/
-function rowCheckboxToggle(e) {
-  if (e.target.tagName == 'INPUT') {
-    return;
-  }
-
-  $(e.target)
-    .parent()
-    .find(':checkbox')
-    .each(function() {
-      this.checked = !this.checked;
-    });
-}
-
-
-/**********************************************************************/
-var Config = {
-  debug: false,
-  ctSteps: 360,
-  ctStepSize: new Angle(2 * Math.PI / ctSteps)
-}
-
-var eph;
-var plot;
-var table;
-var location;
-
 $(document).ready(
   function() {
-    eph = new IMCCE();
+    if (Config.debug) {
+      eph = new DummyEphemeris();
+    } else {
+      eph = new IMCCE();
+    }
     plot = new Plot();
     table = new Table();
-    updateLocation();
 
-    $('#elevation-row-selection').change(rowSelectionCallback);
+    $('#elevation-row-selection').change(Callback.selectRows);
     $('#elevation-plot-selected').click(function(){table.plot();});
     $('#elevation-clear-plot').click(function(){plot.clear();});
     $('#elevation-clear-table').click(function(){table.clear();});
 
-    $('#elevation-add-moving-target-button').click(addMovingTargetCallback);
-    $('#elevation-add-fixed-target-button').click(addFixedTargetCallback);
+    $('#elevation-add-moving-target-button').click(Callback.addMovingTarget);
+    $('#elevation-add-fixed-target-button').click(Callback.addFixedTarget);
 
-    $('#elevation-open-file').change(openFile);
+    $('#elevation-open-file').change(Callback.openFile);
 
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('.elevation-observatory').click(function(e) {
       $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
       $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
       $('#elevation-timezone').val(e.target.dataset.timezone);
-      updateLocationCallback(e);
+      Callback.updateObservatory(e);
     });
-    $('#elevation-date').on('change', updateLocationCallback);
-    $('#elevation-update-location-button').click(updateLocationCallback);
+    $('#elevation-date').on('change', Callback.updateObservatory);
+    $('#elevation-update-observatory-button')
+      .click(Callback.updateObservatory)
+      .click();
 
     $('#elevation-load-button').click(function(e) {
-      loadTargets($('#elevation-target-list').val());
+      Util.loadTargets($('#elevation-target-list').val());
     });
-    $('.elevation-load-target-set-button').click(loadTargetSetButton);
-    eph.get('sun', 'p', function(data){plot.updateSun(data);});
+    $('.elevation-load-target-set-button').click(Callback.loadTargetSetButton);
   }
 );
 
+var Config = {}
+Config.ajaxDelay = 300;  // ms delay between ephemeris calls
+Config.debug = false;
+Config.ctSteps = 360;
+Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
+
+var eph;
+var plot;
+var table;
+var observatory;
