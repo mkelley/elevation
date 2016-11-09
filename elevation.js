@@ -548,10 +548,15 @@ class Table {
     })
   }
 
-  add(t) {
+  add(t, replace) {
+    /* t : Target
+         Target to add.
+       replace : int, optional
+         Index of a row to replace.
+    */
     var row = {};
 
-    row.target_data = t;
+    row.targetData = t;
     row.checkbox = '<input type="checkbox" checked="true">';
     row.target = t.name;
     row.ra = t.ra.hms(1, 2);
@@ -582,7 +587,7 @@ class Table {
 	.substr(0, 6),
       hour: transit
     };
-  
+
     var up = t.alt.greater(new Angle(30, 'deg'));
     var uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
     row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 6);
@@ -596,11 +601,16 @@ class Table {
       row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 6);
     }
 
-    var tr = this.datatable.row.add(row)
-	.draw()
-	.node();
-    
-    $(tr).click(Callback.rowCheckboxToggle);
+    if (replace === undefined) {
+      var tr = this.datatable.row.add(row)
+	  .draw()
+	  .node();
+      $(tr).click(Callback.rowCheckboxToggle)
+	.addClass('elevation-target');
+    } else {
+      console.log('blah');
+      this.datatable.row(replace).data(row).draw();
+    }
   }
 
   clear() {
@@ -616,7 +626,7 @@ class Table {
       .find(':checkbox').each(
 	function(i) {
 	  if (this.checked) {
-	    plot.add(table.datatable.row(i).data().target_data);
+	    plot.add(table.datatable.row(i).data().targetData);
 	  }
 	}
       );
@@ -854,13 +864,10 @@ var Callback = {
 
     // If any targets have been defined, update them.
     var rows = $('.elevation-target');
-    if (rows.length > 0) {
-      var targets = rows.map(function(i, x) {
-	return $(x).data('target');
-      });
-      for (var i = 0; i < targets.length; i += 1) {
-	targets[i].update();
-      }
+    for (var i = 0; i < rows.length; i += 1) {
+      target = table.datatable.row(i).data().targetData;
+      target.update();
+      table.add(target, i);
     }
   }
 }
