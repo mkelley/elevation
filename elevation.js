@@ -608,7 +608,6 @@ class Table {
       $(tr).click(Callback.rowCheckboxToggle)
 	.addClass('elevation-target');
     } else {
-      console.log('blah');
       this.datatable.row(replace).data(row).draw();
     }
   }
@@ -650,23 +649,24 @@ class IMCCE {
     var params = {};
     params['-name'] = type + ':' + name;
     params['-ep'] = date.toISOString();
-    //params['-mime'] = 'votable';
-    params['-mime'] = 'text';
+    params['-mime'] = 'votable';
+    //params['-mime'] = 'text';
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done(function(data){self.processTXT(data, done);});
+      .done(function(data){self.processVotable(data, done, name, type);});
   }
 
   getDataByField(doc, fieldName) {
     var fields = doc.find('FIELD');
     var columns = doc.find('TD');
     var field = doc.find('FIELD[name="' + fieldName + '"]')[0];
-    var i = doc.index(field);
+    var i = fields.index(field);
     return columns[i].textContent;
   }
 
-  processVotable(data, done) {
+  processVotable(data, done, name, type) {
+    console.log(data);
     var doc = $(data);
 
     var status = doc.find('INFO[name="QUERY_STATUS"]');
@@ -675,11 +675,13 @@ class IMCCE {
       return;
     }
 
-    var name = doc.find('PARAM[ID="targetname"]').attr('value');
+    //var name = doc.find('PARAM[ID="targetname"]').attr('value');
+    var name = name;
     var ra = new Angle(this.getDataByField(doc, 'RA'), 'hr');
     var dec = new Angle(this.getDataByField(doc, 'DEC'), 'deg');
 
     var attr = {};
+    attr.type = type;
     attr.delta = parseFloat(this.getDataByField(doc, 'Distance'));
     attr.mv = parseFloat(this.getDataByField(doc, 'Mv'));
     attr.phase = parseFloat(this.getDataByField(doc, 'Phase'));
@@ -688,11 +690,11 @@ class IMCCE {
     var ddec = parseFloat(this.getDataByField(doc, 'dDEC'));
     attr.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
     attr.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
-
+    
     done(new Target(name, ra, dec, attr));
   }
 
-  processTXT(data, done) {
+  processTXT(data, done, name, type) {
     var lines = data.split('\n');
 
     var flag = parseInt(lines[0].split(/\s+/)[2]);
@@ -707,6 +709,7 @@ class IMCCE {
       return;
     }
 
+    /*
     // Parse name from the comments
     var name = lines[3].substr(2);
     var m = name.match(/Asteroid: (.+)/);
@@ -718,6 +721,7 @@ class IMCCE {
     if (m !== null) {
       name = m[1];
     }
+    */
 
     // define RA, Dec
     var eph = lines[lines.length - 3].split(/\s+/);
@@ -726,6 +730,7 @@ class IMCCE {
 
     // Define all additional attributes from ephemeris
     var attr = {};
+    attr.type = type;
     attr.delta = parseFloat(eph[8]);
     attr.mv = parseFloat(eph[9]);
     attr.phase = parseFloat(eph[10]);
@@ -914,7 +919,7 @@ $(document).ready(
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = true;
+Config.debug = false;
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 
