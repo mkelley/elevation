@@ -583,14 +583,14 @@ class Table {
       hour: transit
     };
   
-    var up = t.alt.greater(30, 'deg');
+    var up = t.alt.greater(new Angle(30, 'deg'));
     var uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
     row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 6);
 
     if (plot.sun === undefined) {
       row.darktime = 0;
     } else {
-      var dark = plot.sun.alt.less(-18, 'deg');
+      var dark = plot.sun.alt.less(new Angle(-18, 'deg'));
       var test = up.map(function(x, i) { return x * dark[i]; });
       var darktime = 24 / Config.ctSteps * test.reduce(Util.sum, 0);
       row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 6);
@@ -730,6 +730,9 @@ class IMCCE {
 
 /**********************************************************************/
 class DummyEphemeris {
+  constructor() {
+    Util.msg('Using offline ephemerides.')
+  }
   get(name, type, done) {
     var date = Util.date();
     if (isNaN(date)) {
