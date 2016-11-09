@@ -576,11 +576,10 @@ class Table {
       row.mu = '';
     }
 
-    var transit = t.ct
-	.branchcut(new Angle(0), new Angle(24, 'hr'))
-	.hr[t.alt.transit()];
+    var transit = t.ct.hr[t.alt.transit()];
     row.transit = {
-      display: Util.sexagesimal(transit, 0, 2).substr(0, 6),
+      display: Util.sexagesimal(Util.branchcut(transit, 24, 24), 0, 2)
+	.substr(0, 6),
       hour: transit
     };
   
