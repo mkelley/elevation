@@ -104,8 +104,10 @@ var Util = {
     return d + ':' + m + ':' + s;
   },
 
-  addTargetToTable: function(t) { table.add(t); },
-  newMovingTarget: function(name, type, done) { eph.get(name, type, done); },
+  addTargetToTable: function(t, replace) { table.add(t, replace); },
+  newMovingTarget: function(name, type, done, opts) {
+    eph.get(name, type, done, opts);
+  },
   loadTargets: function(targetList) {
     // Parse a CSV table and add any targets to Elevation's target table.
     var lines = targetList.split('\n');
@@ -122,9 +124,11 @@ var Util = {
       }
 
       if (row[1].trim() == 'f') {
-	table.addTarget(
-	  new Target(row[0], new Angle(row[2], 'hr'), new Angle(row[3], 'deg'))
-	);
+	var name = row[0];
+	var ra = new Angle(row[2], 'hr');
+	var dec = new Angle(row[3], 'deg');
+	var attr = {type: 'f'};
+	table.add(new Target(name, ra, dec, attr));
       } else {
 	setTimeout(Util.newMovingTarget, delay * Config.ajaxDelay,
 		   row[0], row[1], Util.addTargetToTable);
@@ -601,15 +605,26 @@ class Table {
       row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 6);
     }
 
+    var tr;
     if (replace === undefined) {
-      var tr = this.datatable.row.add(row)
-	  .draw()
-	  .node();
-      $(tr).click(Callback.rowCheckboxToggle)
-	.addClass('elevation-target');
+      tr = $(this.datatable.row
+	     .add(row)
+	     .draw()
+	     .node());
+      tr = $(tr);
     } else {
-      this.datatable.row(replace).data(row).draw();
+      tr = $(this.datatable.row(replace)
+	     .data(row)
+	     .draw()
+	     .node());
+
+      // Keep the same checkbox state
+      var lastTR = $(this.datatable.row(replace).node());
+      tr.find(':checkbox')[0].checked = lastTR.find(':checkbox')[0].checked;
     }
+
+    tr.click(Callback.rowCheckboxToggle)
+      .addClass('elevation-target');
   }
 
   clear() {
@@ -639,7 +654,16 @@ class Table {
 
 /**********************************************************************/
 class IMCCE {
-  get(name, type, done) {
+  get(name, type, done, opts) {
+    /* name : string
+         The name of the object, resolvable by Miriade.
+       type : string
+         'a', 'c', or 'p' for asteroid, comet, or "planet".
+       done : function
+         Pass the target onto this function.
+       opts : object
+         Additional parameters passed to the done function.
+    */
     var date = observatory.date;
     if (isNaN(date)) {
       Util.msg(Date() + ': Invalid date.', true);
@@ -654,7 +678,7 @@ class IMCCE {
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done(function(data){self.processVotable(data, done, name, type);});
+      .done(function(data){self.processVotable(data, done, name, type, opts);});
   }
 
   getDataByField(doc, fieldName) {
@@ -665,8 +689,7 @@ class IMCCE {
     return columns[i].textContent;
   }
 
-  processVotable(data, done, name, type) {
-    console.log(data);
+  processVotable(data, done, name, type, opts) {
     var doc = $(data);
 
     var status = doc.find('INFO[name="QUERY_STATUS"]');
@@ -691,10 +714,10 @@ class IMCCE {
     attr.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
     attr.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
     
-    done(new Target(name, ra, dec, attr));
+    done(new Target(name, ra, dec, attr), opts);
   }
 
-  processTXT(data, done, name, type) {
+  processTXT(data, done, name, type, opts) {
     var lines = data.split('\n');
 
     var flag = parseInt(lines[0].split(/\s+/)[2]);
@@ -708,20 +731,6 @@ class IMCCE {
       Util.msg(msg, true);
       return;
     }
-
-    /*
-    // Parse name from the comments
-    var name = lines[3].substr(2);
-    var m = name.match(/Asteroid: (.+)/);
-    if (m !== null) {
-      name = m[1];
-    }
-
-    var m = name.match(/Comet:.*\((.+)\)/);
-    if (m !== null) {
-      name = m[1];
-    }
-    */
 
     // define RA, Dec
     var eph = lines[lines.length - 3].split(/\s+/);
@@ -739,7 +748,7 @@ class IMCCE {
 			+ Math.pow(parseFloat(eph[13]), 2)) * 60;
     attr.ddot = parseFloat(eph[14]);
 
-    done(new Target(name, ra, dec, attr));
+    done(new Target(name, ra, dec, attr), opts);
   }
 }
 
@@ -748,7 +757,7 @@ class DummyEphemeris {
   constructor() {
     Util.msg('Using offline ephemerides.')
   }
-  get(name, type, done) {
+  get(name, type, done, opts) {
     var date = Util.date();
     if (isNaN(date)) {
       Util.msg(Date() + ': Invalid date.', true);
@@ -764,7 +773,7 @@ class DummyEphemeris {
       var ra = new Angle(Math.random() * Math.PI * 2);
       var dec = new Angle((Math.random() - 0.5) * Math.PI);
     }
-    done(new Target(name, ra, dec));
+    done(new Target(name, ra, dec), opts);
   }
 }
 
@@ -780,7 +789,8 @@ var Callback = {
     t = new Target(
       $('#elevation-add-fixed-target-name').val(),
       new Angle($('#elevation-add-fixed-target-ra').val(), 'hr'),
-      new Angle($('#elevation-add-fixed-target-dec').val(), 'deg')
+      new Angle($('#elevation-add-fixed-target-dec').val(), 'deg'),
+      {type: 'f'}
     );
     table.add(t);
   },
@@ -871,8 +881,12 @@ var Callback = {
     var rows = $('.elevation-target');
     for (var i = 0; i < rows.length; i += 1) {
       target = table.datatable.row(i).data().targetData;
-      target.update();
-      table.add(target, i);
+      if ((date != lastDate) && (target.type != 'f')) {
+	  eph.get(target.name, target.type, Util.addTargetToTable, i);
+      } else {
+	target.update();
+	table.add(target, i);
+      }
     }
   }
 }
