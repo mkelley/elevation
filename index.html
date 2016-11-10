@@ -26,7 +26,6 @@
           border-radius: 5px;
           margin: 5px;
           padding: 5px;
-          width: 75%;
         }
   
         table {
@@ -61,7 +60,7 @@
   <body>
     <h1>Elevation Prototype</h1>
 
-    <div id="elevation-plot" style="margin: 5px; width: 75%; height: 75%;"></div>
+    <div id="elevation-plot" style="margin: 5px; height: 75vh;"></div>
 
     <div class="box">
       <div id="elevation-console">
@@ -128,12 +127,12 @@
     </div>
 
     <div class="box">
-      <h2>Date and location</h2>
+      <h2>Observatory and date</h2>
       <p>
 	Date: <input type="date" id="elevation-date"><span class="elevation-ui">(e.g., YYYY-MM-DD)</span>
       </p>
       <p>
-	Location:
+	Observatory:
         <input class="latlon" type="number" min="-90", max="+90" step="any" id="elevation-latitude" value="34.7444">&deg;N
         <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-longitude" value="-111.4223">&deg;E
         <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
@@ -149,7 +148,7 @@
 	  <button class="elevation-observatory" data-latitude="28.7569" data-longitude="-17.8925" data-timezone="Atlantic/Canary">La Palma</button><br>
 	</p>
 	<p>
-	  <button id="elevation-update-location-button">Update location</button>
+	  <button id="elevation-update-observatory-button">Update observatory</button>
 	</p>
       </div>
     </div>
@@ -366,6 +365,5 @@ C/2016 M1,c">
     </div>
 
   </body>
-  <script type="text/javascript" src="geometry.js"></script>
   <script type="text/javascript" src="elevation.js"></script>
 </html>
