@@ -9,9 +9,9 @@ var Util = {
       if (error) {
 	p.addClass('elevation-error');
       }
+      con.prepend(p).scrollTop(0);
     } else {
       console.log(time + (error?' (Error): ':': ') + s)
-      con.prepend(p).scrollTop(0);
     }
   },
   
