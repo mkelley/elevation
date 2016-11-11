@@ -147,8 +147,14 @@ var Util = {
   date: function() {
     return moment.tz($('#elevation-date').val(),
 		     $('#elevation-timezone').val());
-  }
+  },
 
+  scrollTo: function(id) {
+    var e = $(id);
+    if (e.length) {
+      $('html, body').animate({ scrollTop: e.offset().top }, 500);
+    }
+  }
 }
 
 /**********************************************************************/
@@ -643,14 +649,17 @@ class Table {
   }
 
   plot() {
-    $('#elevation-target-table')
-      .find(':checkbox').each(
-	function(i) {
-	  if (this.checked) {
-	    plot.add(table.datatable.row(i).data().targetData);
-	  }
-	}
-      );
+    Util.scrollTo('body');
+    var delay = 0;
+    var targets = $('#elevation-target-table').find(':checkbox');
+    for (var i = 0; i < targets.length; i += 1) {
+      if (targets[i].checked) {
+      setTimeout(function(i) {
+	plot.add(table.datatable.row(i).data().targetData);
+      }, delay * Config.ajaxDelay, i);
+	delay += 1;
+      }
+    }
   }
 
   uptime(i) {
@@ -842,6 +851,7 @@ var Callback = {
     var button = $(e.target);
     $('#elevation-target-list').val(button.data('targets'));
     Util.loadTargets(button.data('targets'));
+    Util.scrollTo('#elevation-target-table-box');
   },
   
   rowCheckboxToggle: function(e) {
@@ -925,6 +935,8 @@ var Callback = {
 	table.add(target, i);
       }
     }
+
+    Util.scrollTo('body');
   }
 }
 
@@ -956,13 +968,13 @@ $(document).ready(
       $('#elevation-timezone').val(e.target.dataset.timezone);
       Callback.updateObservatory(e);
     });
-    $('#elevation-date').on('change', Callback.updateObservatory);
     $('#elevation-update-observatory-button')
       .click(Callback.updateObservatory)
       .click();
 
     $('#elevation-load-button').click(function(e) {
       Util.loadTargets($('#elevation-target-list').val());
+      Util.scrollTo('#elevation-target-table-box');
     });
     $('.elevation-load-target-set-button').click(Callback.loadTargetSetButton);
 
@@ -972,7 +984,7 @@ $(document).ready(
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = true;
+Config.debug = false;
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 
