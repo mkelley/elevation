@@ -638,7 +638,7 @@ class Table {
     this.datatable.rows().remove().draw();
   }
 
-  darkitime(i) {
+  darktime(i) {
     return Util.sexagesimalToFloat(this.datatable.row(i).data().darktime);
   }
 
