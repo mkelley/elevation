@@ -41,10 +41,13 @@
   
         .overflowx { overflow-x: auto; }
   
-        #elevation-error {
-          height: 3em;
+        #elevation-console {
+          height: 6em;
           overflow-y: auto;
         }
+        .elevation-timestamp { font-size: small; }
+        .elevation-error { color: #ff6666; }
+      
         a:link { color: #ee6633; }
         a:visited { color: #cccccc; }
   
@@ -123,6 +126,9 @@
 	  <button id="elevation-add-fixed-target-button">Add fixed target</button>
 	</p>
 	<p><input id="elevation-open-file" type="file"></p>
+
+	<p><button id="elevation-check-ephemeris-availability">Check ephemeris availability</button></p>
+
       </div>
     </div>
 

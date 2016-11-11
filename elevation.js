@@ -1,11 +1,13 @@
 /**********************************************************************/
 var Util = {
   msg: function(s, error) {
-    var p = $('<p>' + s + '</p>');
+    var time = moment().toISOString().substr(11, 8);
+    var p = $('<p><span class="elevation-timestamp">' + time +
+	      '</span> ' + s + '</p>');
     if (error) {
-      p.addClass('error');
+      p.addClass('elevation-error');
     }
-    $('#elevation-console').prepend(p);
+    $('#elevation-console').prepend(p).scrollTop(0);
   },
   
   sum: function(a, b) { return a + b; },
@@ -654,6 +656,26 @@ class Table {
 
 /**********************************************************************/
 class IMCCE {
+  checkAvailability() {
+    console.log('checking');
+    var params = {
+      '-mime': 'votable',
+      '-from': 'elevation-webapp'
+    };
+    $.get('http://vo.imcce.fr/webservices/miriade/getAvailability_query.php',
+          params)
+      .done(
+	function(data){
+ 	  var doc = $(data);
+ 	  var test = eph.getDataByField(doc, 'Availability');
+ 	  if (test != 'Available') {
+ 	    Util.msg("IMCCE's Miriade service is unavailable.", true);
+ 	  } else {
+	    Util.msg("IMCCE's Miriade service is available.");
+	  }
+	});
+  }
+
   get(name, type, done, opts) {
     /* name : string
          The name of the object, resolvable by Miriade.
@@ -755,8 +777,13 @@ class IMCCE {
 /**********************************************************************/
 class DummyEphemeris {
   constructor() {
-    Util.msg('Using offline ephemerides.')
+    Util.msg('Using offline (random) ephemerides.')
   }
+
+  checkAvailability() {
+    Util.msg('Dummy ephemeris service (random) is available.');
+  }
+  
   get(name, type, done, opts) {
     var date = Util.date();
     if (isNaN(date)) {
@@ -793,6 +820,11 @@ var Callback = {
       {type: 'f'}
     );
     table.add(t);
+  },
+
+  checkEphemerisAvailability: function(e) {
+    console.log('blah');
+    eph.checkAvailability();
   },
   
   openFile: function(e) {
@@ -928,12 +960,14 @@ $(document).ready(
       Util.loadTargets($('#elevation-target-list').val());
     });
     $('.elevation-load-target-set-button').click(Callback.loadTargetSetButton);
+
+    $('#elevation-check-ephemeris-availability').click(Callback.checkEphemerisAvailability);
   }
 );
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = false;
+Config.debug = true;
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 
