@@ -2,12 +2,17 @@
 var Util = {
   msg: function(s, error) {
     var time = moment().toISOString().substr(11, 8);
-    var p = $('<p><span class="elevation-timestamp">' + time +
-	      '</span> ' + s + '</p>');
-    if (error) {
-      p.addClass('elevation-error');
+    var con = $('#elevation-console');
+    if (con.length) {
+      var p = $('<p><span class="elevation-timestamp">' + time +
+		'</span>: ' + s + '</p>');
+      if (error) {
+	p.addClass('elevation-error');
+      }
+    } else {
+      console.log(time + (error?' (Error): ':': ') + s)
+      con.prepend(p).scrollTop(0);
     }
-    $('#elevation-console').prepend(p).scrollTop(0);
   },
   
   sum: function(a, b) { return a + b; },
