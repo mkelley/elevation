@@ -6,59 +6,10 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="moment.min.js"></script>
     <script src="moment-timezone-with-data-2010-2020.min.js"></script>
-    <link rel="http://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="http://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
     <script src="http://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
     <script src="http://cdn.datatables.net/plug-ins/1.10.12/sorting/natural.js"></script>
-    <style>
-      @media screen {
-        body { 
-          background: #2F2F2F;
-          color: white;
-        }
-        .latlon {
-          width: 7em;
-        }
-        .tz {
-          width: 10em;
-        }
-        .box {
-          border: 1px solid white;
-          border-radius: 5px;
-          margin: 5px;
-          padding: 5px;
-        }
-  
-        table {
-          border-collapse: collapse;
-        }
-        table th {
-          font-size: small;
-        }
-        table, th, td {
-          border: 1px solid #aaa;
-        }
-        tr:hover { background-color: #5f5f5f; }
-  
-        .overflowx { overflow-x: auto; }
-  
-        #elevation-console {
-          height: 6em;
-          overflow-y: auto;
-        }
-        .elevation-timestamp { font-size: small; }
-        .elevation-error { color: #ff6666; }
-      
-        a:link { color: #ee6633; }
-        a:visited { color: #cccccc; }
-  
-        #elevation-add-fixed-target-ra, #elevation-add-fixed-target-dec {
-          width: 10ex;
-        }
-      }
-      @media print {
-        .elevation-ui { display: none; }
-      }
-    </style>
+    <link rel="stylesheet" href="prototype.css">
   </head>
   <body>
     <h1>Elevation Prototype</h1>
