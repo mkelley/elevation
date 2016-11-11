@@ -626,14 +626,15 @@ class Table {
 	     .node());
       tr = $(tr);
     } else {
+      // Keep the same checkbox state
+      var checkboxState = $(this.datatable.row(replace).node())
+	  .find(':checkbox')[0].checked;
+
       tr = $(this.datatable.row(replace)
 	     .data(row)
 	     .draw()
 	     .node());
-
-      // Keep the same checkbox state
-      var lastTR = $(this.datatable.row(replace).node());
-      tr.find(':checkbox')[0].checked = lastTR.find(':checkbox')[0].checked;
+      tr.find(':checkbox')[0].checked = checkboxState;
     }
 
     tr.click(Callback.rowCheckboxToggle)
@@ -906,16 +907,17 @@ var Callback = {
     var date = Util.date();
     var lat = new Angle(parseFloat($('#elevation-latitude').val()), 'deg');
     var lon = new Angle(parseFloat($('#elevation-longitude').val()), 'deg');
-    var lastDate;
+    var lastYMD;
     if (observatory !== undefined) {
-      lastDate = observatory.date;
+      lastYMD = observatory.date.toISOString().substr(0, 10);
     }
     observatory = new Observatory('', lat, lon, date);
 
     // If the date has changed or the Sun is not yet defined, get a
     // new Sun RA and Dec.
     var updatedSun = false;
-    if ((plot.sun === undefined) || (date != lastDate)) {
+    var ymd = date.toISOString().substr(0, 10);
+    if ((plot.sun === undefined) || (ymd != lastYMD)) {
       eph.get('sun', 'p', function(sun){
 	plot.sun = sun;
 	plot.guides();
@@ -928,7 +930,7 @@ var Callback = {
     var rows = $('.elevation-target');
     for (var i = 0; i < rows.length; i += 1) {
       target = table.datatable.row(i).data().targetData;
-      if ((date != lastDate) && (target.type != 'f')) {
+      if ((ymd != lastYMD) && (target.type != 'f')) {
 	  eph.get(target.name, target.type, Util.addTargetToTable, i);
       } else {
 	target.update();
@@ -936,7 +938,9 @@ var Callback = {
       }
     }
 
-    Util.scrollTo('body');
+    if (e !== undefined) {
+      Util.scrollTo('#elevation-target-table-box');
+    }
   }
 }
 
@@ -969,8 +973,8 @@ $(document).ready(
       Callback.updateObservatory(e);
     });
     $('#elevation-update-observatory-button')
-      .click(Callback.updateObservatory)
-      .click();
+      .click(Callback.updateObservatory);
+    Callback.updateObservatory();
 
     $('#elevation-load-button').click(function(e) {
       Util.loadTargets($('#elevation-target-list').val());
