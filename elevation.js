@@ -283,6 +283,23 @@ class AngleArray {
 
     this._a = a.map(conv);
   }
+
+  add(a) {
+    var b;
+    if (a instanceof AngleArray) {
+      if (a.rad.length == this.rad.length) {
+	b = this.rad.map(function(x, i) { return x + a.rad[i]; });
+      } else {
+	throw "Arrays have different lengths: "
+	  + this.rad.length + " " + a.rad.length;
+      }
+    } else if (a instanceof Angle) {
+      b = this.rad.map(function(x) { return x + a.rad; });
+    } else {
+      throw "Can only add Angles or AngleArrays: " + (typeof a);
+    }
+    return new AngleArray(b);
+  }
   
   get deg () { return this._a.map(Util.rad2deg); }
   get hr () { return this._a.map(Util.rad2hr); }
@@ -441,18 +458,14 @@ class Observatory {
 class Plot {
   constructor() {
     var layout = {
-      xaxis: {
-	title: 'Civil Time (hr)',
-	range: [-7, 7],
-	tickmode: "array",
-	tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
-	ticktext: ['12:00', '14:00', '16:00', '18:00', '20:00', '22:00',
-		   '00:00', '02:00', '04:00', '06:00', '08:00', '10:00',
-		   '12:00']
-      },
       yaxis: {
 	title: 'Elevation (deg)',
 	range: [10, 90]
+      },
+      xaxis: {
+	range: [-7, 7],
+	tickmode: "array",
+	tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
       },
       margin: {
 	t: 12,
@@ -464,21 +477,21 @@ class Plot {
       showlegend: true,
     };
     Plotly.newPlot('elevation-plot', [], layout);
+    this.setupXAxis();
   }
   
-  guides() {
-    var shapes = [];
-    Array.prototype.push.apply(shapes, this.sunGuides());
-    Array.prototype.push.apply(shapes, this.airmassGuides());
-
-    this.clearGuides();
-    Plotly.relayout('elevation-plot', {shapes: shapes});
+  add(t) {
+    var data = {
+      name: t.name,
+      x: t.ct.hr,
+      y: t.alt.deg,
+      type: 'scatter',
+      mode: 'lines',
+      hoverinfo: 'name',
+    };
+    Plotly.addTraces('elevation-plot', data);
   }
-
-  clearGuides() {
-    Plotly.relayout('elevation-plot', {shapes: []});
-  }
-
+  
   airmassGuides() {
     // 19, 30, 50, 65 = 3, 2, 1.3, 1.1
     var alt = [19, 30, 50];
@@ -498,6 +511,35 @@ class Plot {
       });
     }
     return shapes;
+  }
+  
+  clear() {
+    var plotdiv = $('#elevation-plot')[0];
+    var traces = [];
+    for (var i = 0; i < plotdiv.data.length; i += 1) {
+      traces.push(i);
+    }
+    Plotly.deleteTraces('elevation-plot', traces);
+
+    var n = table.datatable.data().count();
+    for (var i = 0; i < n; i += 1) {
+      var data = table.datatable.row(i).data();
+      data.plotted = false;
+      table.datatable.row(i).data(data);
+    }
+  }
+
+  clearGuides() {
+    Plotly.relayout('elevation-plot', {shapes: []});
+  }
+
+  guides() {
+    var shapes = [];
+    Array.prototype.push.apply(shapes, this.sunGuides());
+    Array.prototype.push.apply(shapes, this.airmassGuides());
+
+    this.clearGuides();
+    Plotly.relayout('elevation-plot', {shapes: shapes});
   }
 
   sunGuides() {
@@ -527,32 +569,27 @@ class Plot {
     return shapes;
   }
 
-  add(t) {
-    var data = {
-      name: t.name,
-      x: t.ct.hr,
-      y: t.alt.deg,
-      type: 'scatter',
-      mode: 'lines',
-      hoverinfo: 'name',
+  setupXAxis() {
+    var update = {
+      xaxis: {
+	range: [-7, 7],
+	tickmode: "array",
+	tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
+      }
     };
-    Plotly.addTraces('elevation-plot', data);
-  }
-  
-  clear() {
-    var plotdiv = $('#elevation-plot')[0];
-    var traces = [];
-    for (var i = 0; i < plotdiv.data.length; i += 1) {
-      traces.push(i);
+    var t = new AngleArray([12, 14, 16, 18, 20, 22,
+			    0, 2, 4, 6, 8, 10, 12], 'hr');
+    if (Config.timeAxis == 'CT') {
+      update.xaxis.title = 'Civil Time (hr)';
+    } else if (Config.timeAxis == 'UT') {
+      update.xaxis.title = 'Universal Time (hr)';
+      t = t.add(new Angle(-Util.date().utcOffset() / 60, 'hr'))
+	.branchcut(new Angle(24, 'hr'), new Angle(24, 'hr'));
     }
-    Plotly.deleteTraces('elevation-plot', traces);
 
-    var n = table.datatable.data().count();
-    for (var i = 0; i < n; i += 1) {
-      var data = table.datatable.row(i).data();
-      data.plotted = false;
-      table.datatable.row(i).data(data);
-    }
+    update.xaxis.ticktext = t.hms(0, 2)
+      .map(function(a) { return a.substr(1, 5); });
+    Plotly.relayout('elevation-plot', update);
   }
 }
 
@@ -974,6 +1011,9 @@ var Callback = {
 /**********************************************************************/
 $(document).ready(
   function() {
+    // Need the date setup for timezone first in case plot uses UT
+    $('#elevation-date').val(moment.tz().format().substr(0, 10));
+    
     if (Config.debug) {
       eph = new DummyEphemeris();
     } else {
@@ -1000,7 +1040,6 @@ $(document).ready(
 
     $('#elevation-open-file').change(Callback.openFile);
 
-    $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('.elevation-observatory').click(function(e) {
       $('#elevation-observatory-name').val($(e.target).text());
       $('#elevation-observatory-latitude').val(parseFloat(e.target.dataset.latitude));
@@ -1015,6 +1054,15 @@ $(document).ready(
       .change(Callback.setAirmassLimit)
       .change();
 
+    $('#elevation-xaxis-ut').change(function(e) {
+      if (e.target.checked) {
+	Config.timeAxis = 'UT';
+      } else {
+	Config.timeAxis = 'CT';
+      }
+      plot.setupXAxis();
+    }).change();
+    
     $('#elevation-load-button').click(function(e) {
       Util.loadTargets($('#elevation-target-list').val());
       Util.scrollTo('#elevation-target-table-box');
@@ -1027,10 +1075,11 @@ $(document).ready(
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = false;
+Config.altitudeLimit = undefined;  // will be updated by document.ready
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
-Config.altitudeLimit = undefined;  // will be updated by document.ready
+Config.debug = false;
+Config.timeAxis = 'UT';  // UT or CT (civil time / local time)
 
 var eph;
 var plot;
