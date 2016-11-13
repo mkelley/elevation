@@ -546,6 +546,13 @@ class Plot {
       traces.push(i);
     }
     Plotly.deleteTraces('elevation-plot', traces);
+
+    var n = table.datatable.data().count();
+    for (var i = 0; i < n; i += 1) {
+      var data = table.datatable.row(i).data();
+      data.plotted = false;
+      table.datatable.row(i).data(data);
+    }
   }
 }
 
@@ -604,6 +611,7 @@ class Table {
       display: t.dec.dms(0, 2),
       degree: Util.rad2deg(t.dec)
     };
+    row.plotted = false;
 
     if ('mv' in t) {
       row.mv = t.mv.toFixed(1);
@@ -678,9 +686,12 @@ class Table {
     var targets = $('#elevation-target-table').find(':checkbox');
     for (var i = 0; i < targets.length; i += 1) {
       if (targets[i].checked) {
-      setTimeout(function(i) {
-	plot.add(table.datatable.row(i).data().targetData);
-      }, delay * Config.ajaxDelay, i);
+	setTimeout(function(i) {
+	  var data = table.datatable.row(i).data();
+	  data.plotted = true;
+	  plot.add(data.targetData);
+	  table.datatable.row(i).data(data);
+	}, delay * Config.ajaxDelay, i);
 	delay += 1;
       }
     }
