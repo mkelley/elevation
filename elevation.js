@@ -65,9 +65,8 @@ var Util = {
 	p.addClass('elevation-error');
       }
       con.prepend(p).scrollTop(0);
-    } else {
-      console.log(time + (error?' (Error): ':': ') + s)
     }
+    console.log(time + (error?' (Error): ':': ') + s)
   },
 
   newMovingTarget: function(name, type, done, opts) {
@@ -696,7 +695,6 @@ class Table {
 /**********************************************************************/
 class IMCCE {
   checkAvailability() {
-    console.log('checking');
     var params = {
       '-mime': 'votable',
       '-from': 'elevation-webapp'
@@ -751,7 +749,6 @@ class IMCCE {
   }
 
   processVotable(data, done, name, type, opts) {
-    console.log(data);
     var doc = $(data);
 
     var status = doc.find('INFO[name="QUERY_STATUS"]');
@@ -860,7 +857,6 @@ var Callback = {
   },
 
   checkEphemerisAvailability: function(e) {
-    console.log('blah');
     eph.checkAvailability();
   },
   
@@ -979,6 +975,14 @@ $(document).ready(
     $('#elevation-plot-selected').click(function(){table.plot();});
     $('#elevation-clear-plot').click(function(){plot.clear();});
     $('#elevation-clear-table').click(function(){table.clear();});
+
+    $('.add-fixed-target-on-enter').keyup(
+      function(e) { if (e.keyCode == 13) { Callback.addFixedTarget(e); } }
+    );
+
+    $('.add-moving-target-on-enter').keyup(
+      function(e) { if (e.keyCode == 13) { Callback.addMovingTarget(e);	} }
+    );
 
     $('#elevation-add-moving-target-button').click(Callback.addMovingTarget);
     $('#elevation-add-fixed-target-button').click(Callback.addFixedTarget);
