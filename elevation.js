@@ -933,8 +933,9 @@ var Callback = {
     plot.clear();
 
     var date = Util.date();
-    var lat = new Angle(parseFloat($('#elevation-latitude').val()), 'deg');
-    var lon = new Angle(parseFloat($('#elevation-longitude').val()), 'deg');
+    var name = $('#elevation-observatory-name').val();
+    var lat = new Angle(parseFloat($('#elevation-observatory-latitude').val()), 'deg');
+    var lon = new Angle(parseFloat($('#elevation-observatory-longitude').val()), 'deg');
     var lastYMD;
     if (observatory !== undefined) {
       lastYMD = observatory.date.toISOString().substr(0, 10);
@@ -985,8 +986,9 @@ $(document).ready(
 
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
     $('.elevation-observatory').click(function(e) {
-      $('#elevation-latitude').val(parseFloat(e.target.dataset.latitude));
-      $('#elevation-longitude').val(parseFloat(e.target.dataset.longitude));
+      $('#elevation-observatory-name').val($(e.target).text());
+      $('#elevation-observatory-latitude').val(parseFloat(e.target.dataset.latitude));
+      $('#elevation-observatory-longitude').val(parseFloat(e.target.dataset.longitude));
       $('#elevation-timezone').val(e.target.dataset.timezone);
       Callback.updateObservatory(e);
     });
