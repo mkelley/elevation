@@ -9,8 +9,11 @@
     .tz {
         width: 8em;
     }
-    #elevation-observatory-name, #elevation-airmass-limit {
-	width: 4em;
+    #elevation-observatory-name {
+	width: 7em;
+    }
+    #elevation-airmass-limit {
+	width: 3em;
     }
     .box {
         border: 1px solid white;
@@ -35,6 +38,9 @@
     
     a:link { color: #ee6633; }
     a:visited { color: #cccccc; }
+
+    #elevation-add-moving-target-name,
+    #elevation-add-fixed-target-name { width: 12ex; }
     
     #elevation-add-fixed-target-ra,
     #elevation-add-fixed-target-dec {
