@@ -1011,7 +1011,7 @@ $(document).ready(
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = true;
+Config.debug = false;
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 Config.altitudeLimit = undefined;  // will be updated by document.ready
