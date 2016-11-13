@@ -1,5 +1,60 @@
 /**********************************************************************/
 var Util = {
+  addTargetToTable: function(t, replace) { table.add(t, replace); },
+
+  airmassToAltitude: function(am) {
+    return new Angle(Math.PI / 2 - Math.acos(1 / am));
+  },
+
+  altitudeToAirmass: function(alt) {
+    return 1 / Math.cos(Math.PI / 2 - alt.rad);
+  },
+
+  branchcut: function(x, cut, period) {
+    y = x % period;
+    y = (y < 0)?(y + period):(y);
+    return (y < cut)?(y):(y - period);
+  },
+
+  date: function() {
+    return moment.tz($('#elevation-date').val(),
+		     $('#elevation-timezone').val());
+  },
+  
+  deg2hr: function(x) { return (x / 15); },
+  deg2rad: function(x) { return (x * Math.PI / 180); },
+
+  hr2rad: function(x) { return (x * Math.PI / 12); },
+  hr2deg: function(x) { return (x * 15); },
+
+  loadTargets: function(targetList) {
+    // Parse a CSV table and add any targets to Elevation's target table.
+    var lines = targetList.split('\n');
+    var delay = 0;
+    for (var i in lines) {
+      if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
+	continue;
+      }
+
+      var row = lines[i].split(',');
+      if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
+	Util.msg("Bad row length: " + lines[i], true)
+	continue;
+      }
+
+      if (row[1].trim() == 'f') {
+	var name = row[0];
+	var ra = new Angle(row[2], 'hr');
+	var dec = new Angle(row[3], 'deg');
+	table.add(new Target(name, ra, dec, 'f'));
+      } else {
+	setTimeout(Util.newMovingTarget, delay * Config.ajaxDelay,
+		   row[0], row[1], Util.addTargetToTable);
+	delay += 1;
+      }
+    }
+  },
+
   msg: function(s, error) {
     var time = moment().toISOString().substr(11, 8);
     var con = $('#elevation-console');
@@ -14,50 +69,19 @@ var Util = {
       console.log(time + (error?' (Error): ':': ') + s)
     }
   },
-  
-  sum: function(a, b) { return a + b; },
-  
-  sexagesimalToFloat: function(s) {
-    var _s = s.trim().match(/^([-+]?)(.+)/);
-    var sign = (_s[1] == '-')?-1:1;
-    _s = _s[2];  // now just the magnitude
 
-    if (_s.includes('d')) {
-      _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
-    } else if (_s.includes('h')) {
-      _s = _s.replace('h', ' ').replace('m', ' ').replace('s', ' ');
-    }
-
-    if (_s.includes(':')) {
-      _s = _s.replace(/:/g, ' ');
-    }
-
-    var dms = _s.trim().split(/\s+/).map(parseFloat);
-    var angle = 0;
-    var scales = [1, 60, 3600];
-    for (var i in dms) {
-      if (i > 2) {
-	break;
-      }
-      angle += dms[i] / scales[i];
-    }
-    
-    return sign * angle;
+  newMovingTarget: function(name, type, done, opts) {
+    eph.get(name, type, done, opts);
   },
   
-  deg2rad: function(x) { return (x * Math.PI / 180); },
   rad2deg: function(x) { return (x * 180 / Math.PI); },
-
-  hr2rad: function(x) { return (x * Math.PI / 12); },
   rad2hr: function(x) { return (x * 12 / Math.PI); },
-  
-  hr2deg: function(x) { return (x * 15); },
-  deg2hr: function(x) { return (x / 15); },
-  
-  branchcut: function(x, cut, period) {
-    y = x % period;
-    y = (y < 0)?(y + period):(y);
-    return (y < cut)?(y):(y - period);
+
+  scrollTo: function(id) {
+    var e = $(id);
+    if (e.length) {
+      $('html, body').animate({ scrollTop: e.offset().top }, 500);
+    }
   },
 
   sexagesimal: function(x, seconds_precision, degrees_width) {
@@ -110,51 +134,50 @@ var Util = {
 
     return d + ':' + m + ':' + s;
   },
+  
+  sexagesimalToFloat: function(s) {
+    var _s = s.trim().match(/^([-+]?)(.+)/);
+    var sign = (_s[1] == '-')?-1:1;
+    _s = _s[2];  // now just the magnitude
 
-  addTargetToTable: function(t, replace) { table.add(t, replace); },
-  newMovingTarget: function(name, type, done, opts) {
-    eph.get(name, type, done, opts);
+    if (_s.includes('d')) {
+      _s = _s.replace('d', ' ').replace('m', ' ').replace('s', ' ');
+    } else if (_s.includes('h')) {
+      _s = _s.replace('h', ' ').replace('m', ' ').replace('s', ' ');
+    }
+
+    if (_s.includes(':')) {
+      _s = _s.replace(/:/g, ' ');
+    }
+
+    var dms = _s.trim().split(/\s+/).map(parseFloat);
+    var angle = 0;
+    var scales = [1, 60, 3600];
+    for (var i in dms) {
+      if (i > 2) {
+	break;
+      }
+      angle += dms[i] / scales[i];
+    }
+    
+    return sign * angle;
   },
-  loadTargets: function(targetList) {
-    // Parse a CSV table and add any targets to Elevation's target table.
-    var lines = targetList.split('\n');
-    var delay = 0;
-    for (var i in lines) {
-      if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
-	continue;
-      }
 
-      var row = lines[i].split(',');
-      if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
-	Util.msg("Bad row length: " + lines[i], true)
-	continue;
-      }
+  sum: function(a, b) { return a + b; },  
 
-      if (row[1].trim() == 'f') {
-	var name = row[0];
-	var ra = new Angle(row[2], 'hr');
-	var dec = new Angle(row[3], 'deg');
-	var attr = {type: 'f'};
-	table.add(new Target(name, ra, dec, attr));
+  updateTargets: function(updateEphemerides) {
+    // If any targets have been defined, update them.
+    var rows = $('.elevation-target');
+    for (var i = 0; i < rows.length; i += 1) {
+      target = table.datatable.row(i).data().targetData;
+      if (updateEphemerides && (target.type != 'f')) {
+	eph.get(target.name, target.type, Util.addTargetToTable, i);
       } else {
-	setTimeout(Util.newMovingTarget, delay * Config.ajaxDelay,
-		   row[0], row[1], Util.addTargetToTable);
-	delay += 1;
+	target.update();
+	table.add(target, i);
       }
     }
   },
-
-  date: function() {
-    return moment.tz($('#elevation-date').val(),
-		     $('#elevation-timezone').val());
-  },
-
-  scrollTo: function(id) {
-    var e = $(id);
-    if (e.length) {
-      $('html, body').animate({ scrollTop: e.offset().top }, 500);
-    }
-  }
 }
 
 /**********************************************************************/
@@ -320,8 +343,8 @@ class AngleArray {
 
 /**********************************************************************/
 class Target {
-  /* name, ra (Angle), dec (Angle), object with any other attributes */
   constructor(name, ra, dec, attr) {
+    /* name, ra (Angle), dec (Angle), object with any attributes to save */
     this.name = name;
     this.ra = ra;
     this.dec = dec;
@@ -605,7 +628,7 @@ class Table {
       hour: transit
     };
 
-    var up = t.alt.greater(new Angle(30, 'deg'));
+    var up = t.alt.greater(Config.altitudeLimit);
     var uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
     row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 6);
 
@@ -741,7 +764,6 @@ class IMCCE {
     var dec = new Angle(this.getDataByField(doc, 'DEC'), 'deg');
 
     var attr = {};
-    attr.type = type;
     attr.delta = parseFloat(this.getDataByField(doc, 'Distance'));
     attr.mv = parseFloat(this.getDataByField(doc, 'Mv'));
     attr.phase = parseFloat(this.getDataByField(doc, 'Phase'));
@@ -751,7 +773,7 @@ class IMCCE {
     attr.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
     attr.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
     
-    done(new Target(name, ra, dec, attr), opts);
+    done(new Target(name, ra, dec, type, attr), opts);
   }
 
   processTXT(data, done, name, type, opts) {
@@ -776,7 +798,6 @@ class IMCCE {
 
     // Define all additional attributes from ephemeris
     var attr = {};
-    attr.type = type;
     attr.delta = parseFloat(eph[8]);
     attr.mv = parseFloat(eph[9]);
     attr.phase = parseFloat(eph[10]);
@@ -785,7 +806,7 @@ class IMCCE {
 			+ Math.pow(parseFloat(eph[13]), 2)) * 60;
     attr.ddot = parseFloat(eph[14]);
 
-    done(new Target(name, ra, dec, attr), opts);
+    done(new Target(name, ra, dec, type, attr), opts);
   }
 }
 
@@ -815,7 +836,7 @@ class DummyEphemeris {
       var ra = new Angle(Math.random() * Math.PI * 2);
       var dec = new Angle((Math.random() - 0.5) * Math.PI);
     }
-    done(new Target(name, ra, dec), opts);
+    done(new Target(name, ra, dec, type), opts);
   }
 }
 
@@ -832,7 +853,7 @@ var Callback = {
       $('#elevation-add-fixed-target-name').val(),
       new Angle($('#elevation-add-fixed-target-ra').val(), 'hr'),
       new Angle($('#elevation-add-fixed-target-dec').val(), 'deg'),
-      {type: 'f'}
+      'f'
     );
     table.add(t);
   },
@@ -901,6 +922,13 @@ var Callback = {
     e.target.value = "select";
   },
 
+  setAirmassLimit: function(e) {
+    var am = parseFloat($(e.target).val());
+    Config.altitudeLimit = Util.airmassToAltitude(am);
+    $('#elevation-altitude-limit').html(Config.altitudeLimit.deg.toFixed(1));
+    Util.updateTargets(false);
+  },
+  
   updateObservatory: function(e) {
     plot.clear();
 
@@ -926,17 +954,7 @@ var Callback = {
       plot.guides()
     }
 
-    // If any targets have been defined, update them.
-    var rows = $('.elevation-target');
-    for (var i = 0; i < rows.length; i += 1) {
-      target = table.datatable.row(i).data().targetData;
-      if ((ymd != lastYMD) && (target.type != 'f')) {
-	  eph.get(target.name, target.type, Util.addTargetToTable, i);
-      } else {
-	target.update();
-	table.add(target, i);
-      }
-    }
+    Util.updateTargets(true);
 
     if (e !== undefined) {
       Util.scrollTo('#elevation-target-table-box');
@@ -975,6 +993,9 @@ $(document).ready(
     $('#elevation-update-observatory-button')
       .click(Callback.updateObservatory);
     Callback.updateObservatory();
+    $('#elevation-airmass-limit')
+      .change(Callback.setAirmassLimit)
+      .change();
 
     $('#elevation-load-button').click(function(e) {
       Util.loadTargets($('#elevation-target-list').val());
@@ -988,9 +1009,10 @@ $(document).ready(
 
 var Config = {}
 Config.ajaxDelay = 300;  // ms delay between ephemeris calls
-Config.debug = false;
+Config.debug = true;
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
+Config.altitudeLimit = undefined;  // will be updated by document.ready
 
 var eph;
 var plot;

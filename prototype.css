@@ -4,10 +4,13 @@
         color: white;
     }
     .latlon {
-        width: 7em;
+        width: 6em;
     }
     .tz {
-        width: 10em;
+        width: 8em;
+    }
+    #elevation-observatory-name, #elevation-airmass-limit {
+	width: 4em;
     }
     .box {
         border: 1px solid white;

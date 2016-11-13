@@ -52,7 +52,7 @@
 	    <th>Elong. (&deg;)</th>
 	    <th>&mu; (''/hr)</th>
 	    <th>Transit (CT)</th>
-	    <th>&lt;2 am (hr)</th>
+	    <th>&lt;AM limit (hr)</th>
 	    <th>and dark (hr)</th>
 	</thead>
 	<tbody>
@@ -89,9 +89,14 @@
       </p>
       <p>
 	Observatory:
+        <input type="text" min="-90", max="+90" step="any" id="elevation-observatory-name" value="DCT">
         <input class="latlon" type="number" min="-90", max="+90" step="any" id="elevation-latitude" value="34.7444">&deg;N
         <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-longitude" value="-111.4223">&deg;E
         <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
+      </p>
+      <p>
+	Airmass limit for target table:
+	<input type="number", min="1.0", max="10", step="0.1", id="elevation-airmass-limit" value="2.0"> = <span id="elevation-altitude-limit"></span>&deg; altitude.
       </p>
       <div class="elevation-ui">
 	<p>
