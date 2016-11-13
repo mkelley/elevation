@@ -343,11 +343,12 @@ class AngleArray {
 
 /**********************************************************************/
 class Target {
-  constructor(name, ra, dec, attr) {
+  constructor(name, ra, dec, type, attr) {
     /* name, ra (Angle), dec (Angle), object with any attributes to save */
     this.name = name;
     this.ra = ra;
     this.dec = dec;
+    this.type = type;
     for (var k in attr) {
       this[k] = attr[k];
     }
@@ -750,6 +751,7 @@ class IMCCE {
   }
 
   processVotable(data, done, name, type, opts) {
+    console.log(data);
     var doc = $(data);
 
     var status = doc.find('INFO[name="QUERY_STATUS"]');
@@ -758,7 +760,6 @@ class IMCCE {
       return;
     }
 
-    //var name = doc.find('PARAM[ID="targetname"]').attr('value');
     var name = name;
     var ra = new Angle(this.getDataByField(doc, 'RA'), 'hr');
     var dec = new Angle(this.getDataByField(doc, 'DEC'), 'deg');
