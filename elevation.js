@@ -614,6 +614,7 @@ class Table {
 	  type: "numeric"
 	},
         { data: "mv" },
+        { data: "rh" },
         { data: "delta" },
         { data: "ddot" },
         { data: "phase" },
@@ -650,26 +651,31 @@ class Table {
     };
     row.plotted = false;
 
-    if ('mv' in t) {
-      row.mv = t.mv.toFixed(1);
-      row.delta = t.delta.toFixed(2);
-      row.ddot = t.ddot.toFixed(1);
-      row.phase = t.phase.toFixed(0);
-      row.elong = t.elong.toFixed(0);
-      row.mu = t.mu.toFixed(0);
-    } else {
-      row.mv = '';
-      row.delta = '';
-      row.ddot = '';
-      row.phase = '';
-      row.elong = '';
-      row.mu = '';
+    // columns and number of places for toFixed call
+    var columns = {
+      mv: {places: 1},
+      rh: {places: 2},
+      delta: {places: 2},
+      ddot: {places: 1},
+      phase: {places: 0},
+      elong: {places: 0},
+      mu: {places: 0}
+    };
+    for (var k in columns) {
+      if (k in t) {
+	row[k] = t[k].toFixed(columns[k].places);
+      } else {
+	row[k] = '';
+      }
     }
 
     var transit = t.ct.hr[t.alt.transit()];
+    var offset = 0;
+    if (Config.timeAxis == 'UT') {
+      offset = -Util.date().utcOffset() / 60;
+    }
     row.transit = {
-      display: Util.sexagesimal(Util.branchcut(transit, 24, 24), 0, 2)
-	.substr(0, 6),
+      display: Util.sexagesimal(Util.branchcut(transit + offset, 24, 24), 0, 2).substr(0, 6),
       hour: transit
     };
 
@@ -781,7 +787,7 @@ class IMCCE {
     params['-name'] = type + ':' + name;
     params['-ep'] = date.toISOString();
     params['-mime'] = 'votable';
-    //params['-mime'] = 'text';
+    params['-tcoor'] = '5';
     params['-from'] = 'elevation-webapp';
     var self = this;
     $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
@@ -806,11 +812,12 @@ class IMCCE {
     }
 
     var name = name;
-    var ra = new Angle(this.getDataByField(doc, 'RA'), 'hr');
-    var dec = new Angle(this.getDataByField(doc, 'DEC'), 'deg');
+    var ra = new Angle(this.getDataByField(doc, 'RAJ2000'), 'hr');
+    var dec = new Angle(this.getDataByField(doc, 'DECJ2000'), 'deg');
 
     var attr = {};
-    attr.delta = parseFloat(this.getDataByField(doc, 'Distance'));
+    attr.rh = parseFloat(this.getDataByField(doc, 'Heliocentric distance'));
+    attr.delta = parseFloat(this.getDataByField(doc, 'Distance to observer'));
     attr.mv = parseFloat(this.getDataByField(doc, 'Mv'));
     attr.phase = parseFloat(this.getDataByField(doc, 'Phase'));
     attr.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
@@ -819,39 +826,6 @@ class IMCCE {
     attr.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
     attr.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
     
-    done(new Target(name, ra, dec, type, attr), opts);
-  }
-
-  processTXT(data, done, name, type, opts) {
-    var lines = data.split('\n');
-
-    var flag = parseInt(lines[0].split(/\s+/)[2]);
-    if (flag == -1) {
-      var msg = '';
-      for (var i in lines) {
-	if (lines[i][0] != '#') {
-	  msg += lines[i];
-	}
-      }
-      Util.msg(msg, true);
-      return;
-    }
-
-    // define RA, Dec
-    var eph = lines[lines.length - 3].split(/\s+/);
-    var ra = new Angle(eph[2] + ' ' + eph[3] + ' ' + eph[4], 'hr');
-    var dec = new Angle(eph[5] + ' ' + eph[6] + ' ' + eph[7], 'deg');
-
-    // Define all additional attributes from ephemeris
-    var attr = {};
-    attr.delta = parseFloat(eph[8]);
-    attr.mv = parseFloat(eph[9]);
-    attr.phase = parseFloat(eph[10]);
-    attr.elong = parseFloat(eph[11]);
-    attr.mu = Math.sqrt(Math.pow(parseFloat(eph[12]), 2)
-			+ Math.pow(parseFloat(eph[13]), 2)) * 60;
-    attr.ddot = parseFloat(eph[14]);
-
     done(new Target(name, ra, dec, type, attr), opts);
   }
 }
@@ -1061,6 +1035,8 @@ $(document).ready(
 	Config.timeAxis = 'CT';
       }
       plot.setupXAxis();
+      $('.elevation-time-axis').html(Config.timeAxis);
+      Util.updateTargets();
     }).change();
     
     $('#elevation-load-button').click(function(e) {
