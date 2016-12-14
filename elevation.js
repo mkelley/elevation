@@ -795,17 +795,18 @@ class IMCCE {
   }
 
   getDataByField(doc, fieldName) {
-    var fields = doc.find('FIELD');
-    var columns = doc.find('TD');
-    var field = doc.find('FIELD[name="' + fieldName + '"]')[0];
+    var fields = doc.find('vot\\:FIELD');
+    var columns = doc.find('vot\\:TD');
+    var field = doc.find('vot\\:FIELD[name="' + fieldName + '"]')[0];
     var i = fields.index(field);
     return columns[i].textContent;
   }
 
   processVotable(data, done, name, type, opts) {
+    console.log(data);
     var doc = $(data);
 
-    var status = doc.find('INFO[name="QUERY_STATUS"]');
+    var status = doc.find('vot\\:INFO[name="QUERY_STATUS"]');
     if (status.attr('value') == 'ERROR') {
       Util.msg(status.text(), true);
       return;
