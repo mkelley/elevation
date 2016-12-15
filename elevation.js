@@ -524,7 +524,6 @@ class Plot {
     var n = table.datatable.data().count();
     for (var i = 0; i < n; i += 1) {
       var data = table.datatable.row(i).data();
-      data.plotted = false;
       table.datatable.row(i).data(data);
     }
   }
@@ -649,7 +648,6 @@ class Table {
       display: t.dec.dms(0, 2),
       degree: Util.rad2deg(t.dec)
     };
-    row.plotted = false;
 
     // columns and number of places for toFixed call
     var columns = {
@@ -720,7 +718,8 @@ class Table {
   }
 
   darktime(i) {
-    return Util.sexagesimalToFloat(this.datatable.row(i).data().darktime);
+    var j = table.datatable.rows().indexes()[i];
+    return Util.sexagesimalToFloat(this.datatable.row(j).data().darktime);
   }
 
   plot() {
@@ -730,10 +729,9 @@ class Table {
     for (var i = 0; i < targets.length; i += 1) {
       if (targets[i].checked) {
 	setTimeout(function(i) {
-	  var data = table.datatable.row(i).data();
-	  data.plotted = true;
+	  var j = table.datatable.rows().indexes()[i];
+	  var data = table.datatable.row(j).data();
 	  plot.add(data.targetData);
-	  table.datatable.row(i).data(data);
 	}, delay * Config.ajaxDelay, i);
 	delay += 1;
       }
@@ -741,7 +739,8 @@ class Table {
   }
 
   uptime(i) {
-    return Util.sexagesimalToFloat(this.datatable.row(i).data().uptime);
+    var j = table.datatable.rows().indexes()[i];
+    return Util.sexagesimalToFloat(this.datatable.row(j).data().uptime);
   }
 
 }
