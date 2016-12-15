@@ -804,7 +804,6 @@ class IMCCE {
   }
 
   processVotable(data, done, name, type, opts) {
-    console.log(data);
     var doc = $(data);
 
     var status = doc.find('vot\\:INFO[name="QUERY_STATUS"], '
