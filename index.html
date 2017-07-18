@@ -13,11 +13,11 @@
   <body>
     <h1>Elevation Prototype</h1>
 
-    <div id="elevation-plot" style="margin: 5px; height: 75vh;"></div>
+    <div id="elevation-plot" style="margin: 5px; height: 600px;"></div>
     <p class="small">Airmass guides at 1.3, 2, and 3; Sky brightness
       guides at astronomical twilight, civil twilight, and daylight.</p>
 
-    <div class="box">
+    <div class="box elevation-ui">
       <div id="elevation-console">
       </div>
     </div>
@@ -46,6 +46,7 @@
 	    <th>RA (hr)</th>
 	    <th>Dec (&deg;)</th>
 	    <th>m<sub>V</sub></th>
+	    <th>FoM</th>
 	    <th>r<sub>h</sub> (au)</th>
 	    <th>&Delta; (au)</th>
 	    <th>d&Delta;/dt (km/s)</th>
@@ -131,25 +132,14 @@
 
       <textarea rows="20" cols="72" id="elevation-target-list">
 # Target, Type, RA, Dec, Notes
-2P,c,,,V=16 color
-6P,c,,,V=14 color
-10P,c,,,V=19 r
-22P,c,,,V=17 color
-41P,c,,,V=18 r
-53P,c,,,V=16 color
-56P,c,,,V=16 color
-87P,c,,,V=23 r
-88P,c,,,V=20 r
-C/2011 KP36,c,,,V=14 color
-C/2012 K1,c,,,V=19 r
-C/2013 US10,c,,,V=16 color
-C/2015 YY6,c,,,V=16 color (YY6 == VL62)
-C/2015 V2,c,,,V=13 OH+color
-
-# tough twilight comets
-C/2013 A1,c,,,V=22 r
-C/2014 Q2,c,,,V=20 r
-C/2016 M1,c,,,V=18 r
+# DCT 17Q3 (28 Sep)
+C/2015 O1,c,,,RC BC (0.5 hr)
+C/2016 M1,c,,,RC BC (0.5 hr)
+41P,c,,,r' (0.5 hr)
+81P,c,,,RC BC (0.5 hr)
+2P,c,,,r' (0.5 hr)
+C/2015 YY6,c,,,OH CN RC BC (1.0 hr) / YY6 == VL62
+9P,c,,,r' (0.5 hr)
 </textarea>
       <p class="elevation-ui">
 	<button id="elevation-load-button">Load into table</button>
@@ -183,43 +173,9 @@ C/2014 Q2,c
 #C/2014 Q3,c
 C/2015 V2,c
 C/2015 YY6,c,,,(YY6 == VL62)
-C/2016 M1,c">
+C/2016 M1,c
+C/2017 K2,c">
 	  Spitzer targets
-	</button>
-      </p>
-
-      <p>
-	<button class="elevation-load-target-set-button"
-		data-targets="41P,c
-45P,c
-46P,c">
-	  Close approachers
-	</button>
-      </p>
-
-      <p>
-	<button class="elevation-load-target-set-button"
-		data-targets="2P,c
-4P,c
-15P,c
-21P,c
-37P,c
-41P,c
-45P,c
-46P,c
-62P,c
-64P,c
-67P,c
-68P,c
-71P,c
-73P,c
-87P,c
-88P,c
-115P,c
-141P,c
-213P,c
-260P,c">
-	  Fegea SSO16
 	</button>
       </p>
 
@@ -256,29 +212,6 @@ C/2016 M1,c
 #C/2014 N3,c
 #C/2014 Q2,c">
 	  Protopapa ice
-	</button>
-      </p>
-
-      <p>
-	<button class="elevation-load-target-set-button"
-		data-targets="6P,c
-10P,c
-15P,c
-19P,c
-22P,c
-41P,c
-45P,c
-67P,c
-71P,c
-88P,c
-C/2013 A1,c
-C/2013 US10,c
-C/2013 X1,c
-C/2014 Q2,c
-C/2015 V2,c
-C/2015 YY6,c,,,(YY6 == VL62)
-C/2016 M1,c">
-	  Lowell 2017Q1
 	</button>
       </p>
 

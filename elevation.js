@@ -24,6 +24,13 @@ var Util = {
   deg2hr: function(x) { return (x / 15); },
   deg2rad: function(x) { return (x * Math.PI / 180); },
 
+  figureOfMerit: function(rh, delta, mv) {
+    var mH = mv - 5 * Math.log10(delta);
+    var Q = Math.pow(10, 30.675 - 0.2453 * mH);
+    var FoM = Math.pow(rh, -1.5) / delta * Q / 2.3e26;
+    return FoM;
+  },
+
   hr2rad: function(x) { return (x * Math.PI / 12); },
   hr2deg: function(x) { return (x * 15); },
 
@@ -613,6 +620,7 @@ class Table {
 	  type: "numeric"
 	},
         { data: "mv" },
+        { data: "FoM" },
         { data: "rh" },
         { data: "delta" },
         { data: "ddot" },
@@ -652,6 +660,7 @@ class Table {
     // columns and number of places for toFixed call
     var columns = {
       mv: {places: 1},
+      FoM: {places: 1},
       rh: {places: 2},
       delta: {places: 2},
       ddot: {places: 1},
@@ -820,6 +829,9 @@ class IMCCE {
     attr.rh = parseFloat(this.getDataByField(doc, 'Heliocentric distance'));
     attr.delta = parseFloat(this.getDataByField(doc, 'Distance to observer'));
     attr.mv = parseFloat(this.getDataByField(doc, 'Mv'));
+    if (type == "c") {
+      attr.FoM = Util.figureOfMerit(attr.rh, attr.delta, attr.mv);
+    }
     attr.phase = parseFloat(this.getDataByField(doc, 'Phase'));
     attr.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
     var dra = parseFloat(this.getDataByField(doc, 'dRAcosDEC'));
