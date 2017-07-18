@@ -836,7 +836,7 @@ class IMCCE {
     attr.elong = parseFloat(this.getDataByField(doc, 'Elongation'));
     var dra = parseFloat(this.getDataByField(doc, 'dRAcosDEC'));
     var ddec = parseFloat(this.getDataByField(doc, 'dDEC'));
-    attr.mu = 60 * Math.sqrt(Math.pow(dra, 2), Math.pow(ddec, 2));
+    attr.mu = 60 * Math.sqrt(Math.pow(dra, 2) + Math.pow(ddec, 2));
     attr.ddot = parseFloat(this.getDataByField(doc, 'dist_dot'));
     
     done(new Target(name, ra, dec, type, attr), opts);
