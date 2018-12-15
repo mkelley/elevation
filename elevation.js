@@ -20,6 +20,13 @@ var Util = {
     return moment.tz($('#elevation-date').val(),
 		     $('#elevation-timezone').val());
   },
+
+  jd: function() {
+    var jd;
+    date = Util.date();
+    
+    return jd;
+  },
   
   deg2hr: function(x) { return (x / 15); },
   deg2rad: function(x) { return (x * Math.PI / 180); },
@@ -422,7 +429,7 @@ class Target {
 
 /**********************************************************************/
 class Observatory {
-  constructor(name, lat, lon, date) {
+  constructor(name, lat, lon, alt, date) {
     /* name : string
        lat, lon : Angles
        date : moment.js Date, midnight local time.
@@ -430,6 +437,7 @@ class Observatory {
     this.name = name;
     this.lat = lat;
     this.lon = lon;
+    this.alt = alt;
     this.date = date;
     this._setLST0();
   }
@@ -785,6 +793,64 @@ class DummyEphemeris {
 }
 
 /**********************************************************************/
+var MajorObject = {
+  // Sun and Moon ephemerides from IMCCE
+  constructor(name, date, success) {
+    var params = {};
+    params['-name'] = 'p:' + name;
+    params['-ep'] = date.toISOString();
+    params['-mime'] = 'votable';
+    params['-tcoor'] = '5';
+    params['-from'] = 'elevation-webapp';
+    var self = this;
+    $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
+      .done((data) => self.processVOTable(data, name));
+  }
+  
+  getDataByField(doc, fieldName) {
+    var fields = doc.find('vot\\:FIELD, FIELD');
+    var columns = doc.find('vot\\:TD, TD');
+    var field = doc.find('vot\\:FIELD[name="' + fieldName + '"], '
+			 + 'FIELD[name="' + fieldName + '"]')[0];
+    var i = fields.index(field);
+    return columns[i].textContent;
+  }
+
+  processVOTable(data, name) {
+    var doc = $(data);
+
+    var status = doc.find('vot\\:INFO[name="QUERY_STATUS"], '
+			  + 'INFO[name="QUERY_STATUS"]');
+    if (status.attr('value') == 'ERROR') {
+      Util.msg(status.text(), true);
+      return;
+    }
+
+    var ra = new Angle(this.getDataByField(doc, 'RAJ2000'), 'hr');
+    var dec = new Angle(this.getDataByField(doc, 'DECJ2000'), 'deg');
+    var attr = {
+      phase: parseFloat(this.getDataByField(doc, 'Phase'))
+    };
+    
+    Target.call(this, name, ra, dec, 'p', attr);
+  }
+}
+
+/**********************************************************************/
+var Sun = {
+  constructor(date, success) {
+    MajorObject.call(this, 'Sun', date, success);
+  }
+}
+
+/**********************************************************************/
+var Moon = {
+  constructor(date, success) {
+    MajorObject.call(this, 'Moon', date, success);
+  }
+}
+
+/**********************************************************************/
 var Callback = {
   addMovingTarget: function(e) {
     var name = $('#elevation-add-moving-target-name').val();
@@ -877,13 +943,16 @@ var Callback = {
 
     var date = Util.date();
     var name = $('#elevation-observatory-name').val();
-    var lat = new Angle(parseFloat($('#elevation-observatory-latitude').val()), 'deg');
-    var lon = new Angle(parseFloat($('#elevation-observatory-longitude').val()), 'deg');
+    var lat = new Angle(
+      parseFloat($('#elevation-observatory-latitude').val()), 'deg');
+    var lon = new Angle(
+      parseFloat($('#elevation-observatory-longitude').val()), 'deg');
+    var alt = parseFloat($('#elevation-observatory-longitude'));
     var lastYMD;
     if (observatory !== undefined) {
       lastYMD = observatory.date.toISOString().substr(0, 10);
     }
-    observatory = new Observatory('', lat, lon, date);
+    observatory = new Observatory('', lat, lon, alt, date);
 
     // If the date has changed or the Sun is not yet defined, get a
     // new Sun RA and Dec.
@@ -915,7 +984,7 @@ $(document).ready(
     if (Config.debug) {
       eph = new DummyEphemeris();
     } else if (Config.ephSource == 'imcce') {
-      eph = new IMCCE();
+      eph = new MPC();
     } else {
       eph = new DummyEphemeris();
     }
@@ -941,10 +1010,16 @@ $(document).ready(
     $('#elevation-open-file').change(Callback.openFile);
 
     $('.elevation-observatory').click(function(e) {
-      $('#elevation-observatory-name').val($(e.target).text());
-      $('#elevation-observatory-latitude').val(parseFloat(e.target.dataset.latitude));
-      $('#elevation-observatory-longitude').val(parseFloat(e.target.dataset.longitude));
-      $('#elevation-timezone').val(e.target.dataset.timezone);
+      $('#elevation-observatory-name').val(
+	$(e.target).text());
+      $('#elevation-observatory-latitude').val(
+	parseFloat(e.target.dataset.latitude));
+      $('#elevation-observatory-longitude').val(
+	parseFloat(e.target.dataset.longitude));
+      $('#elevation-observatory-altitude').val(
+	parseFloat(e.target.dataset.altitude));
+      $('#elevation-timezone').val(
+	e.target.dataset.timezone);
       Callback.updateObservatory(e);
     });
     $('#elevation-update-observatory-button')
