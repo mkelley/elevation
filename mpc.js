@@ -5,16 +5,46 @@ class MPC {
   }
 
   checkAvailability() {
-    
+    // Returns a promise
+    payload = this._prepare_payload('Ceres');
+    delete payload['long'];
+    delete payload.lat;
+    delete payload.alt;
+    delete payload.date;
+    return $.post('https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi',
+		  payload)
+      .then((data) => {
+	console.log(data);
+	Util.msg('MPES is online.', true);
+      })
+      .reject((data) => {
+	console.log(data);
+	Util.msg('MPES request failed.');
+      });
   }
   
-  get(name, type, success, opts) {
+  get(name) {
     var date = Util.date();
     if (isNaN(date)) {
       Util.msg(Date() + ': Invalid date.', true);
       return;
     }
+    
+    /*return $.ajax({
+      type: 'GET',
+      url: 'https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi',
+      contentType: 'text/plain',
+      xhrFields: {
+       withCredentials: false
+      },
+      data: this._prepare_payload(name)
+    })*/
 
+    $.post('https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi', payload)
+      .then((data) => this._parse(data));
+  }
+
+  _prepare_payload(name) {
     let payload = {
       ty: 'e',         // ephemeris
       TextArea: name,  // target name
@@ -36,13 +66,10 @@ class MPC {
       s: 't',          // proper motion: total motion and PA
       m: 'h'           // proper motion: arcsec/hr
     };
-
-    $.post('https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi', payload)
-      .done((data) => parseMPES(data))
-      .done((target) => success(target, opts));
+    return payload;
   }
 
-  parseMPES(data) {
+  _parse(data) {
     let html = $.parseHTML(data);
     let tags = [];
     $.each(html, function(i, el) {

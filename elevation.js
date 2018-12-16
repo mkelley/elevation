@@ -17,7 +17,7 @@ var Util = {
   },
 
   date: function() {
-    return moment.tz($('#elevation-date').val(),
+    return moment.tz($('#elevation-date').val() + ' 00:00',
 		     $('#elevation-timezone').val());
   },
   
@@ -35,9 +35,26 @@ var Util = {
   hr2deg: function(x) { return (x * 15); },
 
   jd: function(date) {
-    let j2000 = moment.utc("2000-01-01 12:00");  // J2000 epoch
-    let d = (date - j2000) / 86400000;  // days since J2000 epoch
-    return 2451545.0 + d;
+    // Moment to Julian Date
+    let utc = date.clone().tz('UTC');
+    let Y = utc.year();
+    let M = utc.month() + 1;
+    if (M < 3) {
+      Y -= 1;
+      M + 12;
+    }
+    let D = (utc.date()
+	     + (utc.hour()
+		+ (utc.minute()
+		   + utc.second() / 60)
+		/ 60)
+	     / 24);
+
+    let A = parseInt(Y / 100);
+    let B = 2 - A + parseInt(A / 4);
+    let jd = (parseInt(365.25 * (Y + 4716)) + parseInt(30.6001 * (M + 1))
+	      + D + B - 1524.5);
+    return jd;
   },
 
   loadTargets: function(targetList) {
@@ -373,7 +390,8 @@ class AngleArray {
 /**********************************************************************/
 class Target {
   constructor(name, ra, dec, type, attr) {
-    /* name, ra (Angle), dec (Angle), object with any attributes to save */
+    /* name, ra (Angle), dec (Angle), type ((m)oving target, (f)ixed
+     * target, or (sun)), object with any attributes to save */
     this.name = name;
     this.ra = ra;
     this.dec = dec;
@@ -425,6 +443,40 @@ class Target {
     this.az = new AngleArray(az);
   }
 }
+
+/**********************************************************************/
+class Sun extends Target {
+  constructor(date) {
+    // Meeus, Astronomical Algorithms.  Sun coordinates good to 0.01°
+    // between 1900 and 2100.
+    let jd = Util.jd(date);
+    let T = (jd - 2451545.0) / 36525;
+    
+    let L0 = new Angle(280.46646 + 36000.76983 * T + 0.0003032 * T**2, 'deg');
+    let M = new Angle(357.52911 + 35999.05029 * T - 0.0001537 * T**2, 'deg');
+    //let e = 0.016708634 - 0.000042037 * T - 0.0000001267 * T**2;
+    
+    let C = new Angle(
+      (1.914602 - 0.004817 * T - 0.000014 * T**2) * Math.sin(M.rad)
+	+ (0.019993 - 0.000101 * T) * Math.sin(2 * M.rad)
+	+ 0.000289 * Math.sin(3 * M.rad), 'deg');
+
+    let dlam = new Angle(1.297 * T, 'deg');
+    let lambda = new Angle(L0.rad + C.rad - dlam.rad);
+
+    let eps0 = new Angle(23.43929111111111, 'deg');
+    let ra = new Angle(
+      Math.atan2(
+	Math.cos(eps0.rad) * Math.sin(lambda.rad),
+	Math.cos(lambda.rad)));
+    let dec = new Angle(
+      Math.asin(Math.sin(eps0.rad) * Math.sin(lambda.rad)));
+
+    console.log(T, L0.deg, M.deg, lambda.deg, ra.deg + 360, dec.deg);
+    super('Sun', ra, dec, 'sun', {});
+  }
+}
+
 
 /**********************************************************************/
 class Observatory {
@@ -566,8 +618,8 @@ class Plot {
 	       new Angle(-6, 'deg'),
 	       new Angle(0)];
     for (var i in alt) {
-      var t = [[-12, this.sun.ct.hr[this.sun.alt.set(alt[i])]],
-	       [12, this.sun.ct.hr[this.sun.alt.rise(alt[i])]]];
+      var t = [[-12, observatory.sun.ct.hr[observatory.sun.alt.set(alt[i])]],
+	       [12, observatory.sun.ct.hr[observatory.sun.alt.rise(alt[i])]]];
       for (var j in t) {
 	var shape = {
 	  type: 'rect',
@@ -887,14 +939,14 @@ var Callback = {
   updateObservatory: function(e) {
     plot.clear();
 
-    var date = Util.date();
-    var name = $('#elevation-observatory-name').val();
-    var lat = new Angle(
+    let date = Util.date();
+    let name = $('#elevation-observatory-name').val();
+    let lat = new Angle(
       parseFloat($('#elevation-observatory-latitude').val()), 'deg');
-    var lon = new Angle(
+    let lon = new Angle(
       parseFloat($('#elevation-observatory-longitude').val()), 'deg');
-    var alt = parseFloat($('#elevation-observatory-longitude'));
-    var lastYMD;
+    let alt = parseFloat($('#elevation-observatory-longitude'));
+    let lastYMD;
     if (observatory !== undefined) {
       lastYMD = observatory.date.toISOString().substr(0, 10);
     }
@@ -902,14 +954,11 @@ var Callback = {
 
     // If the date has changed or the Sun is not yet defined, get a
     // new Sun RA and Dec.
-    var updatedSun = false;
-    var ymd = date.toISOString().substr(0, 10);
-    eph.get('sun', 'p')
-      .then((sun) => {
-	observatory.sun = sun;
-	plot.guides();
-      })
-      .then(() => Util.updateTargets(true));
+    let updatedSun = false;
+    let ymd = date.toISOString().substr(0, 10);
+    observatory.sun = new Sun(observatory.date);
+    plot.guides();
+    Util.updateTargets(true);
 
     if (e !== undefined) {
       Util.scrollTo('#elevation-target-table-box');
@@ -927,8 +976,8 @@ $(document).ready(
       eph = new DummyEphemeris();
     } else if (Config.ephSource == 'imcce') {
       eph = new IMCCE();
-    } else if (Config.ephSource == 'horizons') {
-      eph = new Horizons();
+    } else if (Config.ephSource == 'mpc') {
+      eph = new MPC();
     } else {
       eph = new DummyEphemeris();
     }
@@ -1000,7 +1049,7 @@ Config.altitudeLimit = undefined;  // will be updated by document.ready
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 Config.debug = false;
-Config.ephSource = 'horizons';  // imcce or horizons
+Config.ephSource = 'mpc';  // imcce or mpc
 Config.timeAxis = 'UT';  // UT or CT (civil time / local time)
 
 var eph;
