@@ -20,16 +20,9 @@ var Util = {
     return moment.tz($('#elevation-date').val(),
 		     $('#elevation-timezone').val());
   },
-
-  jd: function() {
-    var jd;
-    date = Util.date();
-    
-    return jd;
-  },
   
   deg2hr: function(x) { return (x / 15); },
-  deg2rad: function(x) { return (x * Math.PI / 180); },
+  deg2rad: function(x) { return (x * Math.PI / 180); },  
 
   figureOfMerit: function(rh, delta, mv) {
     var mH = mv - 5 * Math.log10(delta);
@@ -40,6 +33,12 @@ var Util = {
 
   hr2rad: function(x) { return (x * Math.PI / 12); },
   hr2deg: function(x) { return (x * 15); },
+
+  jd: function(date) {
+    let j2000 = moment.utc("2000-01-01 12:00");  // J2000 epoch
+    let d = (date - j2000) / 86400000;  // days since J2000 epoch
+    return 2451545.0 + d;
+  },
 
   loadTargets: function(targetList) {
     // Parse a CSV table and add any targets to Elevation's target table.
@@ -236,7 +235,7 @@ class Angle {
   get deg () { return Util.rad2deg(this.rad); }
   get hr () { return Util.rad2hr(this.rad); }
   get rad () { return this._a; }
-  
+
   dms(seconds_precision, degrees_width) {
     return Util.sexagesimal(this.deg, seconds_precision, degrees_width);
   }
@@ -466,6 +465,11 @@ class Observatory {
 	- Math.pow(T0, 3) / 38710000.0;
     th0 = new Angle(th0 % 360.0, 'deg');
     this.lst0 = th0.add(this.lon).sub(tzoff).mod(new Angle(2 * Math.PI));
+  }
+
+  get midnight () {
+    var tzoff = new Angle(this.date.utcOffset() / 60, 'hr');
+    return moment(this.date).add(tzoff, 'hours');
   }
 }
 
@@ -698,10 +702,10 @@ class Table {
     var uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
     row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 6);
 
-    if (plot.sun === undefined) {
+    if (observatory.sun === undefined) {
       row.darktime = 0;
     } else {
-      var dark = plot.sun.alt.less(new Angle(-18, 'deg'));
+      var dark = observatory.sun.alt.less(new Angle(-18, 'deg'));
       var test = up.map(function(x, i) { return x * dark[i]; });
       var darktime = 24 / Config.ctSteps * test.reduce(Util.sum, 0);
       row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 6);
@@ -789,64 +793,6 @@ class DummyEphemeris {
       var dec = new Angle((Math.random() - 0.5) * Math.PI);
     }
     done(new Target(name, ra, dec, type), opts);
-  }
-}
-
-/**********************************************************************/
-var MajorObject = {
-  // Sun and Moon ephemerides from IMCCE
-  constructor(name, date, success) {
-    var params = {};
-    params['-name'] = 'p:' + name;
-    params['-ep'] = date.toISOString();
-    params['-mime'] = 'votable';
-    params['-tcoor'] = '5';
-    params['-from'] = 'elevation-webapp';
-    var self = this;
-    $.get('http://vo.imcce.fr/webservices/miriade/ephemcc_query.php', params)
-      .done((data) => self.processVOTable(data, name));
-  }
-  
-  getDataByField(doc, fieldName) {
-    var fields = doc.find('vot\\:FIELD, FIELD');
-    var columns = doc.find('vot\\:TD, TD');
-    var field = doc.find('vot\\:FIELD[name="' + fieldName + '"], '
-			 + 'FIELD[name="' + fieldName + '"]')[0];
-    var i = fields.index(field);
-    return columns[i].textContent;
-  }
-
-  processVOTable(data, name) {
-    var doc = $(data);
-
-    var status = doc.find('vot\\:INFO[name="QUERY_STATUS"], '
-			  + 'INFO[name="QUERY_STATUS"]');
-    if (status.attr('value') == 'ERROR') {
-      Util.msg(status.text(), true);
-      return;
-    }
-
-    var ra = new Angle(this.getDataByField(doc, 'RAJ2000'), 'hr');
-    var dec = new Angle(this.getDataByField(doc, 'DECJ2000'), 'deg');
-    var attr = {
-      phase: parseFloat(this.getDataByField(doc, 'Phase'))
-    };
-    
-    Target.call(this, name, ra, dec, 'p', attr);
-  }
-}
-
-/**********************************************************************/
-var Sun = {
-  constructor(date, success) {
-    MajorObject.call(this, 'Sun', date, success);
-  }
-}
-
-/**********************************************************************/
-var Moon = {
-  constructor(date, success) {
-    MajorObject.call(this, 'Moon', date, success);
   }
 }
 
@@ -958,16 +904,12 @@ var Callback = {
     // new Sun RA and Dec.
     var updatedSun = false;
     var ymd = date.toISOString().substr(0, 10);
-    if ((plot.sun === undefined) || (ymd != lastYMD)) {
-      eph.get('sun', 'p', function(sun){
-	plot.sun = sun;
+    eph.get('sun', 'p')
+      .then((sun) => {
+	observatory.sun = sun;
 	plot.guides();
-      });
-    } else {
-      plot.guides()
-    }
-
-    Util.updateTargets(true);
+      })
+      .then(() => Util.updateTargets(true));
 
     if (e !== undefined) {
       Util.scrollTo('#elevation-target-table-box');
@@ -984,7 +926,9 @@ $(document).ready(
     if (Config.debug) {
       eph = new DummyEphemeris();
     } else if (Config.ephSource == 'imcce') {
-      eph = new MPC();
+      eph = new IMCCE();
+    } else if (Config.ephSource == 'horizons') {
+      eph = new Horizons();
     } else {
       eph = new DummyEphemeris();
     }
@@ -1056,7 +1000,7 @@ Config.altitudeLimit = undefined;  // will be updated by document.ready
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 Config.debug = false;
-Config.ephSource = 'imcce';  // imcce or mpc
+Config.ephSource = 'horizons';  // imcce or horizons
 Config.timeAxis = 'UT';  // UT or CT (civil time / local time)
 
 var eph;
