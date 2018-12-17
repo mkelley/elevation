@@ -1,26 +1,33 @@
 /**********************************************************************/
 class MPC {
   constructor() {
+    this.MPC_URL = 'https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi';
     Util.msg("Using MPC's ephemeris service.")
   }
-
+  
   checkAvailability() {
     // Returns a promise
-    payload = this._prepare_payload('Ceres');
+    let payload = this._prepare_payload('Ceres');
     delete payload['long'];
     delete payload.lat;
     delete payload.alt;
-    delete payload.date;
-    return $.post('https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi',
-		  payload)
-      .then((data) => {
-	console.log(data);
-	Util.msg('MPES is online.', true);
-      })
-      .reject((data) => {
-	console.log(data);
-	Util.msg('MPES request failed.');
-      });
+    payload.d = '2018-12-01';
+    payload.c = '500';
+    return new Promise((resolve, reject) => {
+      $.post(this.MPC_URL, payload)
+	.then((data) => {
+	  resolve(data);
+	}, function(err) {
+	  reject(err);
+	});
+    }).then((data) => {
+      console.log(payload);
+      console.log(data);
+      Util.msg('MPES is online.');
+    }).catch((data) => {
+      console.log(data);
+      Util.msg('MPES request failed.', true);
+    });
   }
   
   get(name) {
@@ -29,22 +36,17 @@ class MPC {
       Util.msg(Date() + ': Invalid date.', true);
       return;
     }
-    
-    /*return $.ajax({
-      type: 'GET',
-      url: 'https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi',
-      contentType: 'text/plain',
-      xhrFields: {
-       withCredentials: false
-      },
-      data: this._prepare_payload(name)
-    })*/
 
     $.post('https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi', payload)
       .then((data) => this._parse(data));
   }
 
   _prepare_payload(name) {
+    let date = observatory.date
+	.toISOString()
+	.replace('T', ' ')
+	.substring(0, 13);
+    
     let payload = {
       ty: 'e',         // ephemeris
       TextArea: name,  // target name
@@ -58,7 +60,7 @@ class MPC {
       'long': observatory.lon.deg, // longitude, decimal degrees
       lat: observatory.lat.deg,     // latitude, decimal degrees
       alt: observatory.alt,         // altitude, meters
-      d: observatory.date,  // date
+      d: date,         // date
       l: 1,            // number of dates to output
       i: '1',          // interval size
       u: 'd',          // interval unit
