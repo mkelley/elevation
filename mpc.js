@@ -13,32 +13,48 @@ class MPC {
     delete payload.alt;
     payload.d = '2018-12-01';
     payload.c = '500';
+    return this._request(payload)
+      .then((data) => {
+	console.log(data);
+	Util.msg('MPES is online.');
+      }).catch((data) => {
+	console.log(data);
+	Util.msg('MPES request failed.', true);
+      });
+  }
+
+  _request(payload) {
     return new Promise((resolve, reject) => {
-      $.post(this.MPC_URL, payload)
-	.then((data) => {
-	  resolve(data);
-	}, function(err) {
-	  reject(err);
-	});
-    }).then((data) => {
-      console.log(payload);
-      console.log(data);
-      Util.msg('MPES is online.');
-    }).catch((data) => {
-      console.log(data);
-      Util.msg('MPES request failed.', true);
+      let request = new XMLHttpRequest();
+      request.open('POST', this.MPC_URL, true);
+      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      request.responseType = 'document';
+      request.onload = (() => {
+	if (request.status === 200) {
+	  resolve(request.response);
+	} else {
+	  reject(new Error(request.statusText));
+	}
+      });
+      request.send($.param(payload));
     });
   }
   
   get(name) {
     var date = Util.date();
     if (isNaN(date)) {
-      Util.msg(Date() + ': Invalid date.', true);
+      Util.msg(date + ': Invalid date.', true);
       return;
     }
 
-    $.post('https://cgi.minorplanetcenter.net/cgi-bin/mpeph2.cgi', payload)
-      .then((data) => this._parse(data));
+    let payload = this._prepare_payload(name);
+
+    return this._request(payload)
+      .then((data) => this._parse(data))
+      .catch((data) => {
+	console.log(data);
+	Util.msg('Error retrieving ephemeris for ' + name + '.', true);
+      });
   }
 
   _prepare_payload(name) {
@@ -58,8 +74,8 @@ class MPC {
       tit: '',         // no page title
       bu: '',          // no base url
       'long': observatory.lon.deg, // longitude, decimal degrees
-      lat: observatory.lat.deg,     // latitude, decimal degrees
-      alt: observatory.alt,         // altitude, meters
+      lat: observatory.lat.deg,    // latitude, decimal degrees
+      alt: observatory.alt,        // altitude, meters
       d: date,         // date
       l: 1,            // number of dates to output
       i: '1',          // interval size
@@ -72,14 +88,9 @@ class MPC {
   }
 
   _parse(data) {
-    let html = $.parseHTML(data);
-    let tags = [];
-    $.each(html, function(i, el) {
-      tags[i] = "<li>" + el.nodeName + "</li>";
-    });
-    let text = html[tags.indexOf('pre')].textContent;
+    let text = data.body.getElementsByTagName('pre')[0].innerText;
     let lines = text.split('\n');
-    let name = lines[0];
+    let name = lines[0].replace(/^0+/, '');
     let eph = lines[lines.length - 2];
     let ra = new Angle(eph.substring(18, 28), 'hr');
     let dec = new Angle(eph.substring(29, 38), 'deg');
@@ -88,7 +99,7 @@ class MPC {
     attr.delta = parseFloat(eph.substring(39, 46));
     attr.rh = parseFloat(eph.substring(47, 54));
     attr.mv = parseFloat(eph.substring(69, 73));
-    if (type == "c") {
+    if (Util.isComet(name)) {
       attr.FoM = Util.figureOfMerit(attr.rh, attr.delta, attr.mv);
     }
     attr.phase = parseFloat(eph.substring(62, 67));
@@ -96,6 +107,6 @@ class MPC {
     attr.mu  = parseFloat(eph.substring(74, 81));
     attr.lelong = parseFloat(eph.substring(118, 121));
 
-    return new Target(name, ra, dec, type, attr);
+    return new Target(name, ra, dec, 'm', attr);
   }
 }
