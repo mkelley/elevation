@@ -980,8 +980,6 @@ $(document).ready(
     
     if (Config.debug) {
       eph = new DummyEphemeris();
-    } else if (Config.ephSource == 'imcce') {
-      eph = new IMCCE();
     } else if (Config.ephSource == 'mpc') {
       eph = new MPC();
     } else {
@@ -1055,7 +1053,7 @@ Config.altitudeLimit = undefined;  // will be updated by document.ready
 Config.ctSteps = 360;
 Config.ctStepSize = new Angle(2 * Math.PI / Config.ctSteps);
 Config.debug = false;
-Config.ephSource = 'mpc';  // imcce or mpc
+Config.ephSource = 'mpc';  // mpc
 Config.timeAxis = 'UT';  // UT or CT (civil time / local time)
 
 var eph;
