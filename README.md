@@ -3,4 +3,4 @@ Simple web app to plot elevation and transit time, with special attention given 
 
 Solar System ephemerides are from the [Minor Planet and Comet Ephemeris Service](https://minorplanetcenter.net/iau/MPEph/MPEph.html) at the Minor Planet Center (MPC).
 
-Ephemeris for the Sun and many astronomical methods from Astronomical Algorithms by Jean Meeus.
+Ephemeris for the Sun and some astronomical methods from Astronomical Algorithms by Jean Meeus.
