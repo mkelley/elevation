@@ -534,6 +534,7 @@ class Observatory {
 class Plot {
   constructor() {
     let layout = {
+      title: 'YYYY-MM-DD at ASDF',
       yaxis: {
 	title: 'Elevation (deg)',
 	range: [10, 90]
@@ -544,7 +545,7 @@ class Plot {
 	tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
       },
       margin: {
-	t: 12,
+	t: 40,
 	b: 50,
 	l: 50,
 	r: 50,
@@ -645,15 +646,25 @@ class Plot {
   }
 
   setupXAxis() {
+    let tickvals = [];
+    let ticklabels = [];
+    for (let i = -12; i <= 12; i++) {
+      tickvals.push(i);
+      if (i < 0) {
+	ticklabels.push(i + 24);
+      } else {
+	ticklabels.push(i);
+      }
+    }
+
     let update = {
       xaxis: {
 	range: [-7, 7],
 	tickmode: "array",
-	tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
+	tickvals: tickvals
       }
     };
-    let t = new AngleArray([12, 14, 16, 18, 20, 22,
-			    0, 2, 4, 6, 8, 10, 12], 'hr');
+    let t = new AngleArray(ticklabels, 'hr');
     if (Config.timeAxis == 'CT') {
       update.xaxis.title = 'Civil Time (hr)';
     } else if (Config.timeAxis == 'UT') {
@@ -664,6 +675,14 @@ class Plot {
 
     update.xaxis.ticktext = t.hms(0, 2)
       .map(function(a) { return a.substr(1, 5); });
+    Plotly.relayout('elevation-plot', update);
+  }
+
+  updateTitle() {
+    let update = {
+      title: (observatory.name + ' / ' +
+	      observatory.date.toISOString().substring(0, 10))
+    };
     Plotly.relayout('elevation-plot', update);
   }
 }
@@ -956,7 +975,7 @@ var Callback = {
     if (observatory !== undefined) {
       lastYMD = observatory.date.toISOString().substr(0, 10);
     }
-    observatory = new Observatory('', lat, lon, alt, date);
+    observatory = new Observatory(name, lat, lon, alt, date);
 
     // If the date has changed or the Sun is not yet defined, get a
     // new Sun RA and Dec.
@@ -964,6 +983,7 @@ var Callback = {
     let ymd = date.toISOString().substr(0, 10);
     observatory.sun = new Sun(observatory.date);
     plot.guides();
+    plot.updateTitle();
     Util.updateTargets(true);
 
     if (e !== undefined) {
