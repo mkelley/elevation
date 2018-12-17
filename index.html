@@ -87,13 +87,14 @@
     <div class="box">
       <h2>Observatory and date</h2>
       <p>
-	Date: <input type="date" id="elevation-date"><span class="elevation-ui"> (e.g., YYYY-MM-DD)</span>
+	Date: <input type="date" id="elevation-date"><span class="elevation-ui"></span>
       </p>
       <p>
 	Observatory:
         <input type="text" min="-90", max="+90" step="any" id="elevation-observatory-name" value="DCT">
         <input class="latlon" type="number" min="-90", max="+90" step="any" id="elevation-observatory-latitude" value="34.7444">&deg;N
         <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-observatory-longitude" value="-111.4223">&deg;E
+        <input class="alt" type="number" min="0", step="1" id="elevation-observatory-altitude" value="2360">&nbsp;m
         <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
       </p>
       <p>
@@ -105,13 +106,27 @@
       </p>
       <div class="elevation-ui">
 	<p>
-	  <button class="elevation-observatory" data-latitude="19.8208" data-longitude="-155.4681" data-timezone="US/Hawaii">MKO</button>
-	  <button class="elevation-observatory" data-latitude="34.7444" data-longitude="-111.4223" data-timezone="US/Arizona">DCT</button>
-	  <button class="elevation-observatory" data-latitude="30.6797" data-longitude="-104.0248" data-timezone="US/Central">McDonald</button>
-	  <button class="elevation-observatory" data-latitude="39.0020" data-longitude="-76.9561" data-timezone="US/Eastern">UMD</button>
-	  <button class="elevation-observatory" data-latitude="-30.1716" data-longitude="-70.8009" data-timezone="America/Santiago">CTIO</button>
-	  <button class="elevation-observatory" data-latitude="-24.6275" data-longitude="-70.4044" data-timezone="America/Santiago">VLT</button>
-	  <button class="elevation-observatory" data-latitude="28.7569" data-longitude="-17.8925" data-timezone="Atlantic/Canary">La Palma</button><br>
+	  <button class="elevation-observatory" data-latitude="19.8208"
+		  data-longitude="-155.4681" data-altitude="9750"
+		  data-timezone="US/Hawaii">MKO</button>
+	  <button class="elevation-observatory" data-latitude="34.7444"
+		  data-longitude="-111.4223" data-altitude="2360"
+		  data-timezone="US/Arizona">DCT</button>
+	  <button class="elevation-observatory" data-latitude="30.6797"
+		  data-longitude="-104.0248" data-altitude="2070"
+		  data-timezone="US/Central">McDonald</button>
+	  <button class="elevation-observatory" data-latitude="39.0020"
+		  data-longitude="-76.9561" data-altitude="53"
+		  data-timezone="US/Eastern">UMD</button>
+	  <button class="elevation-observatory" data-latitude="-30.1716"
+		  data-longitude="-70.8009" data-altitude="2200"
+		  data-timezone="America/Santiago">CTIO</button>
+	  <button class="elevation-observatory" data-latitude="-24.6275"
+		  data-longitude="-70.4044" data-altitude="2635"
+		  data-timezone="America/Santiago">VLT</button>
+	  <button class="elevation-observatory" data-latitude="28.7569"
+		  data-longitude="-17.8925" data-altitude="7861"
+		  data-timezone="Atlantic/Canary">La Palma</button><br>
 	</p>
 	<p>
 	  <button id="elevation-update-observatory-button">Update plot</button>
@@ -123,24 +138,23 @@
       <h2>Target input</h2>
       <ul>
 	<li>Columns: Target, Type, RA, Dec, Notes.</li>
-	<li>Type: c, a, p, f for comet, asteroid, planet, or fixed.</li>
+	<li>Type: (m)oving target or (f)ixed target.</li>
 	<li>RA and Dec may be any sensible format, e.g., -12, -12d 34m,
 	12h34m56s, 12:34:56.78.</li>
 	<li>RA and Dec is ignored for Solar System targets.</li>
       </ul>
-      <p>Comet names are from the IMCCE <a href="ftp://ftp.imcce.fr/pub/databases/cometpro/COMNAME.csv">comet database</a>.</p>
 
       <textarea rows="20" cols="72" id="elevation-target-list">
 # Target, Type, RA, Dec, Notes
 # DCT 17Q3 (28 Sep)
-C/2015 O1,c,,,RC BC (0.5 hr)
-C/2016 M1,c,,,RC BC (0.5 hr)
-41P,c,,,r' (0.4 hr)
-81P,c,,,RC BC (0.4 hr)
-2P,c,,,r' (0.4 hr)
-C/2015 YY6,c,,,OH CN RC BC (1.0 hr) / YY6 == VL62
-9P,c,,,r' (0.4 hr)
-C/2017 K2,c,,,r' (0.4 hr)
+C/2015 O1,m,,,RC BC (0.5 hr)
+C/2016 M1,m,,,RC BC (0.5 hr)
+41P,m,,,r' (0.4 hr)
+81P,m,,,RC BC (0.4 hr)
+2P,m,,,r' (0.4 hr)
+C/2015 VL62,m,,,OH CN RC BC (1.0 hr) / YY6 == VL62
+9P,m,,,r' (0.4 hr)
+C/2017 K2,m,,,r' (0.4 hr)
 </textarea>
       <p class="elevation-ui">
 	<button id="elevation-load-button">Load into table</button>
@@ -152,70 +166,34 @@ C/2017 K2,c,,,r' (0.4 hr)
       <p>
 	Cometary Orbital Trends
 	<button class="elevation-load-target-set-button"
-		data-targets="2P,c
-6P,c
-9P,c
-10P,c
-15P,c
-19P,c
-22P,c
-46P,c
-67P,c
-71P,c
-73P-C,c
-73P-B,c
-81P,c
-88P,c
-103P,c
-C/2012 K1,c
-C/2013 A1,c
-C/2013 US10,c
-C/2013 X1,c
-C/2014 Q2,c
-#C/2014 Q3,c
-C/2015 V2,c
-C/2015 YY6,c,,,(YY6 == VL62)
-C/2016 M1,c
-C/2017 K2,c">
+		data-targets="2P,m
+6P,m
+9P,m
+10P,m
+15P,m
+19P,m
+22P,m
+46P,m
+67P,m
+71P,m
+73P,m
+81P,m
+88P,m
+103P,m
+C/2012 K1,m
+C/2013 A1,m
+C/2013 US10,m
+C/2013 X1,m
+C/2014 Q2,m
+C/2014 Q3,m
+C/2015 V2,m
+C/2015 VL62,m
+C/2016 M1,m
+C/2017 K2,m">
 	  Spitzer targets
 	</button>
       </p>
 
-      <p>
-	<button class="elevation-load-target-set-button"
-		data-targets="29P,c
-41P,c
-45P,c
-53P,c
-65P,c
-71P,c
-81P,c
-C/2011 KP36,c
-C/2013 X1,c
-C/2014 S2,c
-C/2014 W2,c
-C/2015 F4,c
-C/2015 O1,c
-C/2015 V2,c
-C/2015 YY6,c
-C/2016 M1,c
-#9P,c
-#17P,c
-#67P,c
-#100P,c
-#117P,c
-#230P,c
-#252P,c
-#C/2010 S1,c
-#C/2011 J2,c
-#C/2012 K1,c
-#C/2013 A1,c
-#C/2013 US10,c
-#C/2014 N3,c
-#C/2014 Q2,c">
-	  Protopapa ice
-	</button>
-      </p>
 
       <p>
 	<button class="elevation-load-target-set-button"
@@ -257,9 +235,75 @@ C/2016 M1,c
 	</button>
       </p>
 
+      <p>
+	<button class="elevation-load-target-set-button"
+		data-targets="# Collected solar analogs by Audrey Delsanti
+
+# Binzel and Bus, used at IRTF and Palomar
+SA 93-101,   f, 01:53:18.0, +00:22:25, V= 9.7
+Hyades 64,   f, 04:26:40.1, +16:44:49, V= 8.1; used by VLT LP; HD 28099
+SA 98-978,   f, 06:51:34.0, -00:11:33, V=10.5
+SA 102-1081, f, 10:57:04.4, -00:13:12, V= 9.9
+BS 4486,     f, 11:38:44.8, +45:06:31, V= 6.4
+SA 107-684,  f, 15:37:18.1, -00:09:50, V= 8.4
+SA 107-998,  f, 15:38:16.4, +00:15:23, V=10.4
+SA 110-361,  f, 18:42:45.0, +00:08:04, V=12.4
+16 Cyg B,    f, 19:41:52.0, +50:31:03, V= 6.2; HD 186427		       
+SA 112-1333, f, 20:43:11.8, +00:26:15, V=10.0
+SA 115-271,  f, 23:42:41.8, +00:45:14, V= 9.7
+
+
+# From Hardop, solar analog stars
+HD 1835,   f, 00:22:51.7, -12:12:34, V=6.4
+HD 28099,  f, 04:26:40.1, +16:44:49, V=8.1; Hya 64
+HD 44594,  f, 06:20:06.1, -48:44:28, V=6.6
+HD 76151,  f, 08:54:17.9, -05:26:04, V=6.0
+HD 89010,  f, 10:16:32.3, +23:30:11, V=5.9
+HD 144585, f, 16:07:03.3, -14:04:17, V=6.3
+HD 159222, f, 17:32:00.9, +34:16:16, V=6.6
+HD 181655, f, 19:19:38.9, +37:19:50, V=6.3
+HD 186427, f, 19:41:51.9, +50:31:03, V=6.2; 16 Cyg B
+HD 191854, f, 20:10:13.3, +43:56:44, V=7.4
+
+# Other very good and no so bright stars
+Hyades 142, f, 04:46:30.0, +15:28:20.7, V=8.3; HD 30246; used by VLT LP
+HD44594,    f, 06:20:04.9, -48:44:14.6, V=6.6
+HD144873,   f, 16:06:41.1, +34:06:01.6, V=8.5
+
+# From James 'Gerbs' Bauer:
+HD 2966  , f, 00 32 50.1, -13 15 27.5, V= 8.8; G5V; used by Hainaut
+HD 1368	 , f, 00 17 54.6, +00 22 40.2, V= 8.9; F9V; well calibrated
+HD 2141	 , f, 00 25 32.7, -16 08 00.0, V= 8.9; G3V
+HD 147284, f, 16 21 55.4, -24 59 28.7, V= 8.8; G3V; confirmed
+HD 148642, f, 16 30 34.0, -25 28 14.2, V= 8.7; F7V; no ext. according
+HD 147935, f, 16 25 49.1, -27 49 09.2, V= 9.2; G5V
+HD 218251, f, 23 06 39.2, -14 51 49.6, V= 9.2; G5V; companion 30 arcsec south
+HD 210990, f, 22 14 24.2, -16 36 33.7, V= 9.5; G1V
+HD 210078, f, 22 08 06.4, -11 53 00.3, V=10.2; G3V; star 2.5 arcmin east
+HD 209847, f, 22 06 41.4, -14 44 14.0, V= 9.8; G2V; used by Dotto/Barucci
+
+# From Farnham et al., Icarus 147, 2000, 180, 204:
+HD 11131,  f, 01 49 23.4, -10 42 13, V=6.8; G1V; nearby V=5 176´´E, 62´´N
+HD 25680,  f, 04 05 20.3, +22 00 32, V=5.9; G5V; (39 Tau); IHW; nearby V=9 1.2´´E 173´´N
+HD 28099,  f, 04 26 40.1, +16 44 49, V=8.1; G2V; vB 64; IHW
+HD 29461,  f, 04 38 57.3, +14 06 20, V=8.0; G5V; vB 106; IHW
+HD 30246,  f, 04 46 30.4, +15 28 19, V=8.3; G5V; vB 142; IHW
+HD 76151,  f, 08 54 18.0, -05 26 05, V=6.0; G3V; IHW
+HD 81809,  f, 09 27 46.8, -06 04 17, V=5.4; G2V
+HD 146233, f, 16 15 36.4, -08 21 45, V=5.5; G1V; 18 Sco
+HD 186408, f, 19 41 48.9, +50 31 31, V=6.0; G1.5V; 16 Cyg A; IHW; double system
+HD 186427, f, 19 41 52.0, +50 31 03, V=6.2; G2.5V; 16 Cyg B; IHW; double system
+HD 191854, f, 20 10 13.3, +43 56 45, V=7.4; G5V; IHW
+HD 217014, f, 22 57 23.0, +20 46 07, V=5.5; G2.5V; 51 Peg
+">
+	  Solar analogs
+	</button>
+      </p>
+
       
     </div>
 
   </body>
   <script type="text/javascript" src="elevation.js"></script>
+  <script type="text/javascript" src="mpc.js"></script>
 </html>
