@@ -27,7 +27,8 @@ class MPC {
     return new Promise((resolve, reject) => {
       let request = new XMLHttpRequest();
       request.open('POST', this.MPC_URL, true);
-      request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      request.setRequestHeader(
+	'Content-Type', 'application/x-www-form-urlencoded');
       request.responseType = 'document';
       request.onload = (() => {
 	if (request.status === 200) {
@@ -40,7 +41,7 @@ class MPC {
     });
   }
   
-  get(name) {
+  get(name, meta) {
     var date = Util.date();
     if (isNaN(date)) {
       Util.msg(date + ': Invalid date.', true);
@@ -49,8 +50,8 @@ class MPC {
 
     let payload = this._prepare_payload(name);
 
-    return this._request(payload)
-      .then((data) => this._parse(data))
+    return this._request(payload, meta)
+      .then((data) => this._parse(name, data, meta))
       .catch((data) => {
 	console.log(data);
 	Util.msg('Error retrieving ephemeris for ' + name + '.', true);
@@ -87,26 +88,26 @@ class MPC {
     return payload;
   }
 
-  _parse(data) {
+  _parse(name, data, meta) {
     let text = data.body.getElementsByTagName('pre')[0].innerText;
     let lines = text.split('\n');
-    let name = lines[0].replace(/^0+/, '');
+    
     let eph = lines[lines.length - 2];
     let ra = new Angle(eph.substring(18, 28), 'hr');
     let dec = new Angle(eph.substring(29, 38), 'deg');
 
-    let attr = {};
-    attr.delta = parseFloat(eph.substring(39, 46));
-    attr.rh = parseFloat(eph.substring(47, 54));
-    attr.mv = parseFloat(eph.substring(69, 73));
+    meta.mpc_name = lines[0].replace(/^0+/, '');
+    meta.delta = parseFloat(eph.substring(39, 46));
+    meta.rh = parseFloat(eph.substring(47, 54));
+    meta.mv = parseFloat(eph.substring(69, 73));
     if (Util.isComet(name)) {
-      attr.FoM = Util.figureOfMerit(attr.rh, attr.delta, attr.mv);
+      meta.FoM = Util.figureOfMerit(meta.rh, meta.delta, meta.mv);
     }
-    attr.phase = parseFloat(eph.substring(62, 67));
-    attr.elong = parseFloat(eph.substring(56, 61));
-    attr.mu  = parseFloat(eph.substring(74, 81));
-    attr.lelong = parseFloat(eph.substring(118, 121));
+    meta.phase = parseFloat(eph.substring(62, 67));
+    meta.elong = parseFloat(eph.substring(56, 61));
+    meta.mu  = parseFloat(eph.substring(74, 81));
+    meta.lelong = parseFloat(eph.substring(118, 121));
 
-    return new Target(name, ra, dec, 'm', attr);
+    return new Target(name, ra, dec, 'm', meta);
   }
 }

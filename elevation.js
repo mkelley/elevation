@@ -76,21 +76,19 @@ var Util = {
 	continue;
       }
 
+      let name = row[0];
+      let meta = {note: row[4]};
+
       if (row[1].trim() == 'f') {
-	let name = row[0];
 	let ra = new Angle(row[2], 'hr');
 	let dec = new Angle(row[3], 'deg');
 	table.add(new Target(name, ra, dec, 'f'));
       } else {
-	console.log(row[0]);
 	let promise = new Promise((resolve, reject) => {
 	  setTimeout(() => resolve(1), 1000);
-	}).then(() => { console.log(row[0]); return eph.get(row[0]); })
-	    .then((target) => { console.log(target); table.add(target); });
-	
-	//setTimeout(Util.newMovingTarget, delay * Config.ajaxDelay,
-	//row[0], row[1], Util.addTargetToTable);
-	//delay += 1;
+	})
+	    .then(() => eph.get(name, meta))
+	    .then((target) => table.add(target));
       }
     }
   },
@@ -206,7 +204,7 @@ var Util = {
     for (let i = 0; i < rows.length; i += 1) {
       target = table.datatable.row(i).data().targetData;
       if (updateEphemerides && (target.type != 'f')) {
-	eph.get(target.name)
+	eph.get(target.name, {})
 	  .then((target) => table.add(target, i));
       } else {
 	target.update();
@@ -723,7 +721,8 @@ class Table {
 	  type: "numeric"
         },
         { data: "uptime" },
-        { data: "darktime" }
+        { data: "darktime" },
+        { data: "notes" }
       ]
     })
   }
@@ -744,6 +743,12 @@ class Table {
       display: t.dec.dms(0, 2),
       degree: Util.rad2deg(t.dec)
     };
+    
+    if ('note' in t) {
+      row.notes = t.note;
+    } else {
+      row.notes = '';
+    }
 
     // columns and number of places for toFixed call
     let columns = {
@@ -877,7 +882,7 @@ var Callback = {
   addMovingTarget: function(e) {
     let name = $('#elevation-add-moving-target-name').val();
     let type = $('#elevation-add-moving-target-type').val();
-    eph.get(name)
+    eph.get(name, {})
       .then((target) => table.add(target));
   },
 
