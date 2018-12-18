@@ -104,7 +104,7 @@ class MPC {
       meta.FoM = Util.figureOfMerit(meta.rh, meta.delta, meta.mv);
     }
     meta.phase = parseFloat(eph.substring(62, 67));
-    meta.elong = parseFloat(eph.substring(56, 61));
+    meta.selong = parseFloat(eph.substring(56, 61));
     meta.mu  = parseFloat(eph.substring(74, 81));
     meta.lelong = parseFloat(eph.substring(118, 121));
 

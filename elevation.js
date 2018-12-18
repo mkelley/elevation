@@ -34,7 +34,10 @@ var Util = {
 
   isComet: function(name) {
     let n = name.trim().toUpperCase();
-    return (n.startsWith(('P/', 'C/', 'X/', 'D/')) || n.endsWith('P'));
+    let provisional = (
+      ['P/', 'C/', 'X/','D/'].indexOf(n.substring(0, 2)) > -1);
+    let permanent = n.endsWith('P');
+    return (permanent || provisional);
   },
 
   jd: function(date) {
@@ -709,9 +712,9 @@ class Table {
         { data: "FoM" },
         { data: "rh" },
         { data: "delta" },
-        { data: "ddot" },
         { data: "phase" },
-        { data: "elong" },
+        { data: "selong" },
+        { data: "lelong" },
         { data: "mu" },
         { data:
 	  {
@@ -756,9 +759,9 @@ class Table {
       FoM: {places: 1},
       rh: {places: 2},
       delta: {places: 2},
-      ddot: {places: 1},
       phase: {places: 0},
-      elong: {places: 0},
+      selong: {places: 0},
+      lelong: {places: 0},
       mu: {places: 0}
     };
     for (let k in columns) {
