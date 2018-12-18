@@ -67,6 +67,9 @@ var Util = {
     // Parse a CSV table and add any targets to Elevation's target table.
     let lines = targetList.split('\n');
     let delay = 0;
+    let promise = new Promise((resolve, reject) => {
+      setTimeout(() => resolve(1), Config.ajaxDelay);
+    })
     
     for (let i in lines) {
       if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
@@ -87,11 +90,10 @@ var Util = {
 	let dec = new Angle(row[3], 'deg');
 	table.add(new Target(name, ra, dec, 'f'));
       } else {
-	let promise = new Promise((resolve, reject) => {
-	  setTimeout(() => resolve(1), 1000);
-	})
-	    .then(() => eph.get(name, meta))
-	    .then((target) => table.add(target));
+	promise
+	  .then(() => setTimeout(() => (1), Config.ajaxDelay))
+	  .then(() => eph.get(name, meta))
+	  .then((target) => table.add(target));
       }
     }
   },
@@ -396,15 +398,15 @@ class AngleArray {
 
 /**********************************************************************/
 class Target {
-  constructor(name, ra, dec, type, attr) {
+  constructor(name, ra, dec, type, meta) {
     /* name, ra (Angle), dec (Angle), type ((m)oving target, (f)ixed
-     * target, or (sun)), object with any attributes to save */
+     * target, or (sun)), object with any meta data to save */
     this.name = name;
     this.ra = ra;
     this.dec = dec;
     this.type = type;
-    for (let k in attr) {
-      this[k] = attr[k];
+    for (let k in meta) {
+      this[k] = meta[k];
     }
     this.update();
   }
@@ -448,6 +450,7 @@ class Target {
     }
     this.alt = new AngleArray(alt);
     this.az = new AngleArray(az);
+    this.am = this.alt.rad.map((a) => (1 / Math.cos(Math.PI / 2 - a)));
   }
 }
 
@@ -558,14 +561,15 @@ class Plot {
     this.setupXAxis();
   }
   
-  add(t) {
+  add(target) {
     let data = {
-      name: t.name,
-      x: t.ct.hr,
-      y: t.alt.deg,
+      name: target.name,
+      x: target.ct.hr,
+      y: target.alt.deg,
       type: 'scatter',
       mode: 'lines',
-      hoverinfo: 'name',
+      hoverinfo: 'text',
+      text: target.am.map((a) => (target.name + ', ' + a.toFixed(2)))
     };
     Plotly.addTraces('elevation-plot', data);
   }
@@ -730,7 +734,7 @@ class Table {
     })
   }
 
-  add(t, replace) {
+  add(target, replace) {
     /* t : Target
          Target to add.
        replace : int, optional
@@ -738,17 +742,17 @@ class Table {
     */
     let row = {};
 
-    row.targetData = t;
+    row.targetData = target;
     row.checkbox = '<input type="checkbox" checked="true">';
-    row.target = t.name;
-    row.ra = t.ra.hms(1, 2);
+    row.target = target.name;
+    row.ra = target.ra.hms(1, 2);
     row.dec = {
-      display: t.dec.dms(0, 2),
-      degree: Util.rad2deg(t.dec)
+      display: target.dec.dms(0, 2),
+      degree: Util.rad2deg(target.dec)
     };
     
-    if ('note' in t) {
-      row.notes = t.note;
+    if ('note' in target) {
+      row.notes = target.note;
     } else {
       row.notes = '';
     }
@@ -765,24 +769,26 @@ class Table {
       mu: {places: 0}
     };
     for (let k in columns) {
-      if (k in t) {
-	row[k] = t[k].toFixed(columns[k].places);
+      if (k in target) {
+	row[k] = target[k].toFixed(columns[k].places);
       } else {
 	row[k] = '';
       }
     }
 
-    let transit = t.ct.hr[t.alt.transit()];
+    let transit = target.ct.hr[target.alt.transit()];
     let offset = 0;
     if (Config.timeAxis == 'UT') {
       offset = -Util.date().utcOffset() / 60;
     }
     row.transit = {
-      display: Util.sexagesimal(Util.branchcut(transit + offset, 24, 24), 0, 2).substr(0, 6),
+      display: Util.sexagesimal(
+	Util.branchcut(transit + offset, 24, 24), 0, 2)
+	.substr(0, 6),
       hour: transit
     };
 
-    let up = t.alt.greater(Config.altitudeLimit);
+    let up = target.alt.greater(Config.altitudeLimit);
     let uptime = 24 / Config.ctSteps * up.reduce(Util.sum, 0);
     row.uptime = Util.sexagesimal(uptime, 0, 2).substr(0, 6);
 
