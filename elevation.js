@@ -626,6 +626,7 @@ class Plot {
   sunGuides() {
     let shapes = [];
     let alt = [new Angle(-18, 'deg'),
+	       new Angle(-12, 'deg'),
 	       new Angle(-6, 'deg'),
 	       new Angle(0)];
     for (let i in alt) {
