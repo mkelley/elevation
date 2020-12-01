@@ -31,7 +31,7 @@ var Util = {
     let sinLat = x + Math.sin(dec.rad) * 0.46019978;
     let lat = Math.asin(sinLat);
     let lon = Math.atan2(Math.sin(dec.rad) - sinLat * 0.46019978, x) + 0.5759586531581288;
-    return { l: Angle(lat, 'rad'), b: Angle(lon, 'rad') };
+    return { l: new Angle(lat, 'rad'), b: new Angle(lon, 'rad') };
   },
 
   figureOfMerit: function (rh, delta, mv) {
