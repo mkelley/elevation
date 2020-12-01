@@ -1,161 +1,157 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="moment.min.js"></script>
-    <script src="moment-timezone-with-data-2010-2020.min.js"></script>
-    <script src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/plug-ins/1.10.12/sorting/natural.js"></script>
-    <link rel="stylesheet" href="prototype.css">
-  </head>
-  <body>
-    <h1>Elevation Prototype</h1>
 
-    <div id="elevation-plot" style="margin: 5px; height: 600px;"></div>
-    <p class="small">Airmass guides at 1.3, 2, and 3; Sky brightness
-      guides at astronomical twilight, nautical twilight, civil
-      twilight, and daylight.</p>
+<head>
+  <meta charset="UTF-8">
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="moment.min.js"></script>
+  <script src="moment-timezone-with-data-2010-2020.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/plug-ins/1.10.12/sorting/natural.js"></script>
+  <link rel="stylesheet" href="prototype.css">
+</head>
 
-    <div class="box elevation-ui">
-      <div id="elevation-console">
-      </div>
+<body>
+  <h1>Elevation Prototype</h1>
+
+  <div id="elevation-plot" style="margin: 5px; height: 600px;"></div>
+  <p class="small">Airmass guides at 1.3, 2, and 3; Sky brightness
+    guides at astronomical twilight, nautical twilight, civil
+    twilight, and daylight.</p>
+
+  <div class="box elevation-ui">
+    <div id="elevation-console">
+    </div>
+  </div>
+
+  <div class="box overflowx" id="elevation-target-table-box">
+    <h2>Target table</h2>
+
+    <div class="elevation-ui">
+      <select id="elevation-row-selection">
+        <option value="select">Select...</option>
+        <option value="all">All</option>
+        <option value="none">None</option>
+        <option value="airmass">Airmass &gt; limit</option>
+        <option value="dark">Dark time &gt; 0</option>
+      </select>
+      <button id="elevation-plot-selected">Plot selected</button>
+      <button id="elevation-clear-plot">Clear plot</button>
+      <button id="elevation-clear-table">Clear table</button>
     </div>
 
-    <div class="box overflowx" id="elevation-target-table-box">
-      <h2>Target table</h2>
+    <table id="elevation-target-table">
+      <thead>
+        <tr>
+          <th style="width: 1em;"></th>
+          <th style="width: 12em;">Target</th>
+          <th>RA (hr)</th>
+          <th>Dec (&deg;)</th>
+          <th>b (&deg;)</th>
+          <th>m<sub>V</sub></th>
+          <th>FoM</th>
+          <th>r<sub>h</sub> (au)</th>
+          <th>&Delta; (au)</th>
+          <th>Phase (&deg;)</th>
+          <th>Sol. Elong. (&deg;)</th>
+          <th>Lun. Elong. (&deg;)</th>
+          <th>&mu; (''/hr)</th>
+          <th>Transit (<span class="elevation-time-axis">CT</span>)</th>
+          <th>&lt;AM limit (hr)</th>
+          <th>and dark (hr)</th>
+          <th style="width: 10em;">Notes</th>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
 
-      <div class="elevation-ui">
-	<select id="elevation-row-selection">
-	  <option value="select">Select...</option>
-	  <option value="all">All</option>
-	  <option value="none">None</option>
-	  <option value="airmass">Airmass &gt; limit</option>
-	  <option value="dark">Dark time &gt; 0</option>
-	</select>
-	<button id="elevation-plot-selected">Plot selected</button>
-	<button id="elevation-clear-plot">Clear plot</button>
-	<button id="elevation-clear-table">Clear table</button>
-      </div>
+    <div class="elevation-ui">
+      <p>
+        <input type="text" class="add-moving-target-on-enter" id="elevation-add-moving-target-name">
+        <select id="elevation-add-moving-target-type">
+          <option value="a">Asteroid</option>
+          <option value="c" selected>Comet</option>
+        </select>
+        <button id="elevation-add-moving-target-button">Add moving target</button>
+      </p>
+      <p>
+        <input type="text" class="add-fixed-target-on-enter" id="elevation-add-fixed-target-name">
+        <input type="text" class="add-fixed-target-on-enter" id="elevation-add-fixed-target-ra">
+        <input type="text" class="add-fixed-target-on-enter" id="elevation-add-fixed-target-dec">
+        <button id="elevation-add-fixed-target-button">Add fixed target</button>
+      </p>
+      <p><input id="elevation-open-file" type="file"></p>
 
-      <table id="elevation-target-table">
-	<thead>
-	  <tr>
-	    <th style="width: 1em;"></th>
-	    <th style="width: 12em;">Target</th>
-	    <th>RA (hr)</th>
-	    <th>Dec (&deg;)</th>
-	    <th>m<sub>V</sub></th>
-	    <th>FoM</th>
-	    <th>r<sub>h</sub> (au)</th>
-	    <th>&Delta; (au)</th>
-	    <th>Phase (&deg;)</th>
-	    <th>Sol. Elong. (&deg;)</th>
-	    <th>Lun. Elong. (&deg;)</th>
-	    <th>&mu; (''/hr)</th>
-	    <th>Transit (<span class="elevation-time-axis">CT</span>)</th>
-	    <th>&lt;AM limit (hr)</th>
-	    <th>and dark (hr)</th>
-	    <th style="width: 10em;">Notes</th>
-	</thead>
-	<tbody>
-	</tbody>
-      </table>
+      <p><button id="elevation-check-ephemeris-availability">Check ephemeris availability</button></p>
 
-      <div class="elevation-ui">
-	<p>
-	  <input type="text" class="add-moving-target-on-enter" id="elevation-add-moving-target-name">
-	  <select id="elevation-add-moving-target-type">
-	    <option value="a">Asteroid</option>
-	    <option value="c" selected>Comet</option>
-	  </select>
-	  <button id="elevation-add-moving-target-button">Add moving target</button>
-	</p>
-	<p>
-	  <input type="text" class="add-fixed-target-on-enter" id="elevation-add-fixed-target-name">
-	  <input type="text" class="add-fixed-target-on-enter" id="elevation-add-fixed-target-ra">
-	  <input type="text" class="add-fixed-target-on-enter" id="elevation-add-fixed-target-dec">
-	  <button id="elevation-add-fixed-target-button">Add fixed target</button>
-	</p>
-	<p><input id="elevation-open-file" type="file"></p>
-
-	<p><button id="elevation-check-ephemeris-availability">Check ephemeris availability</button></p>
-
-      </div>
     </div>
+  </div>
 
-    <div class="box">
-      <h2>Observatory and date</h2>
+  <div class="box">
+    <h2>Observatory and date</h2>
+    <p>
+      Date: <input type="date" id="elevation-date"><span class="elevation-ui"></span>
+    </p>
+    <p>
+      Observatory:
+      <input type="text" min="-90" , max="+90" step="any" id="elevation-observatory-name" value="DCT">
+      <input class="latlon" type="number" min="-90" , max="+90" step="any" id="elevation-observatory-latitude"
+        value="34.7444">&deg;N
+      <input class="latlon" type="number" min="-360" , max="+360" step="any" id="elevation-observatory-longitude"
+        value="-111.4223">&deg;E
+      <input class="alt" type="number" min="0" , step="1" id="elevation-observatory-altitude" value="2360">&nbsp;m
+      <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
+    </p>
+    <p>
+      Airmass limit for target table:
+      <input type="number" , min="1.0" , max="10" , step="0.1" , id="elevation-airmass-limit" value="2.0"> = <span
+        id="elevation-altitude-limit"></span>&deg; altitude.
+    </p>
+    <p>
+      <input type="checkbox" id="elevation-xaxis-ut"> Use Universal Time for x-axis.
+    </p>
+    <div class="elevation-ui">
       <p>
-	Date: <input type="date" id="elevation-date"><span class="elevation-ui"></span>
-      </p>
-      <p>
-	Observatory:
-        <input type="text" min="-90", max="+90" step="any" id="elevation-observatory-name" value="DCT">
-        <input class="latlon" type="number" min="-90", max="+90" step="any" id="elevation-observatory-latitude" value="34.7444">&deg;N
-        <input class="latlon" type="number" min="-360", max="+360" step="any" id="elevation-observatory-longitude" value="-111.4223">&deg;E
-        <input class="alt" type="number" min="0", step="1" id="elevation-observatory-altitude" value="2360">&nbsp;m
-        <input class="tz" type="text" id="elevation-timezone" value="US/Arizona">
-      </p>
-      <p>
-	Airmass limit for target table:
-	<input type="number", min="1.0", max="10", step="0.1", id="elevation-airmass-limit" value="2.0"> = <span id="elevation-altitude-limit"></span>&deg; altitude.
-      </p>
-      <p>
-	<input type="checkbox" id="elevation-xaxis-ut"> Use Universal Time for x-axis.
-      </p>
-      <div class="elevation-ui">
-	<p>
-	  <button class="elevation-observatory" data-latitude="31.1942"
-		  data-longitude="-7.85389" data-altitude="2700"
-		  data-timezone="Africa/Casablanca">Oukaïmeden</button>
-	  <button class="elevation-observatory" data-latitude="28.7569"
-		  data-longitude="-17.8925" data-altitude="2396"
-		  data-timezone="Atlantic/Canary">La Palma</button>
-	  <button class="elevation-observatory" data-latitude="39.0020"
-		  data-longitude="-76.9561" data-altitude="53"
-		  data-timezone="US/Eastern">UMD</button>
-	  <button class="elevation-observatory" data-latitude="-24.6275"
-		  data-longitude="-70.4044" data-altitude="2635"
-		  data-timezone="America/Santiago">VLT</button>
-	  <button class="elevation-observatory" data-latitude="-29.2547"
-		  data-longitude="-70.7394" data-altitude="2400"
-		  data-timezone="America/Santiago">La Silla</button>
-	  <button class="elevation-observatory" data-latitude="-30.1716"
-		  data-longitude="-70.8009" data-altitude="2200"
-		  data-timezone="America/Santiago">CTIO</button>
-	  <button class="elevation-observatory" data-latitude="30.6797"
-		  data-longitude="-104.0248" data-altitude="2070"
-		  data-timezone="US/Central">McDonald</button>
-	  <button class="elevation-observatory" data-latitude="34.7444"
-		  data-longitude="-111.4223" data-altitude="2360"
-		  data-timezone="US/Arizona">DCT</button>
-	  <button class="elevation-observatory" data-latitude="19.8208"
-		  data-longitude="-155.4681" data-altitude="4205"
-		  data-timezone="US/Hawaii">MKO</button>
-	  <button class="elevation-observatory" data-latitude="43.47083"
-		  data-longitude="87.17767" data-altitude="2080"
-		  data-timezone="Asia/Shanghai">Xingming</button><br>
+        <button class="elevation-observatory" data-latitude="31.1942" data-longitude="-7.85389" data-altitude="2700"
+          data-timezone="Africa/Casablanca">Oukaïmeden</button>
+        <button class="elevation-observatory" data-latitude="28.7569" data-longitude="-17.8925" data-altitude="2396"
+          data-timezone="Atlantic/Canary">La Palma</button>
+        <button class="elevation-observatory" data-latitude="39.0020" data-longitude="-76.9561" data-altitude="53"
+          data-timezone="US/Eastern">UMD</button>
+        <button class="elevation-observatory" data-latitude="-24.6275" data-longitude="-70.4044" data-altitude="2635"
+          data-timezone="America/Santiago">VLT</button>
+        <button class="elevation-observatory" data-latitude="-29.2547" data-longitude="-70.7394" data-altitude="2400"
+          data-timezone="America/Santiago">La Silla</button>
+        <button class="elevation-observatory" data-latitude="-30.1716" data-longitude="-70.8009" data-altitude="2200"
+          data-timezone="America/Santiago">CTIO</button>
+        <button class="elevation-observatory" data-latitude="30.6797" data-longitude="-104.0248" data-altitude="2070"
+          data-timezone="US/Central">McDonald</button>
+        <button class="elevation-observatory" data-latitude="34.7444" data-longitude="-111.4223" data-altitude="2360"
+          data-timezone="US/Arizona">DCT</button>
+        <button class="elevation-observatory" data-latitude="19.8208" data-longitude="-155.4681" data-altitude="4205"
+          data-timezone="US/Hawaii">MKO</button>
+        <button class="elevation-observatory" data-latitude="43.47083" data-longitude="87.17767" data-altitude="2080"
+          data-timezone="Asia/Shanghai">Xingming</button><br>
 
-	</p>
-	<p>
-	  <button id="elevation-update-observatory-button">Update plot</button>
-	</p>
-      </div>
+      </p>
+      <p>
+        <button id="elevation-update-observatory-button">Update plot</button>
+      </p>
     </div>
-    
-    <div class="box elevation-ui">
-      <h2>Target input</h2>
-      <ul>
-	<li>Columns: Target, Type, RA, Dec, Notes.</li>
-	<li>Type: (m)oving target or (f)ixed target.</li>
-	<li>RA and Dec may be any sensible format, e.g., -12, -12d 34m,
-	12h34m56s, 12:34:56.78.</li>
-	<li>RA and Dec is ignored for Solar System targets.</li>
-      </ul>
+  </div>
 
-      <textarea rows="20" cols="72" id="elevation-target-list">
+  <div class="box elevation-ui">
+    <h2>Target input</h2>
+    <ul>
+      <li>Columns: Target, Type, RA, Dec, Notes.</li>
+      <li>Type: (m)oving target or (f)ixed target.</li>
+      <li>RA and Dec may be any sensible format, e.g., -12, -12d 34m,
+        12h34m56s, 12:34:56.78.</li>
+      <li>RA and Dec is ignored for Solar System targets.</li>
+    </ul>
+
+    <textarea rows="20" cols="72" id="elevation-target-list">
 # Target, Type, RA, Dec, Notes
 # DCT 17Q3 (28 Sep)
 C/2015 O1,m,,,RC BC (0.5 hr)
@@ -167,17 +163,16 @@ C/2015 VL62,m,,,OH CN RC BC (1.0 hr) / YY6 == VL62
 9P,m,,,r' (0.4 hr)
 C/2017 K2,m,,,r' (0.4 hr)
 </textarea>
-      <p class="elevation-ui">
-	<button id="elevation-load-button">Load into table</button>
-      </p>
-    </div>
+    <p class="elevation-ui">
+      <button id="elevation-load-button">Load into table</button>
+    </p>
+  </div>
 
-    <div class="box elevation-ui">
-      <h2>Pre-defined target lists</h2>
-      <p>
-	Cometary Orbital Trends
-	<button class="elevation-load-target-set-button"
-		data-targets="2P,m
+  <div class="box elevation-ui">
+    <h2>Pre-defined target lists</h2>
+    <p>
+      Cometary Orbital Trends
+      <button class="elevation-load-target-set-button" data-targets="2P,m
 6P,m
 9P,m
 10P,m
@@ -201,14 +196,13 @@ C/2015 V2,m
 C/2015 VL62,m
 C/2016 M1,m
 C/2017 K2,m">
-	  Spitzer targets
-	</button>
-      </p>
+        Spitzer targets
+      </button>
+    </p>
 
 
-      <p>
-	<button class="elevation-load-target-set-button"
-		data-targets="# HB filter B-type flux standards, Farnham et al. 2000
+    <p>
+      <button class="elevation-load-target-set-button" data-targets="# HB filter B-type flux standards, Farnham et al. 2000
   3379, f, 00:36:47.24, +15:13:54.5, V=5.89 a
   6815, f, 01:08:55.72, +09:43:49.4, V=7.30
  14951, f, 02:24:48.92, +10:36:38.9, V=5.46
@@ -242,13 +236,12 @@ C/2017 K2,m">
 #  e)  Nearby bright star:   4.6 mag,   420'' E,  645'' S.
 #  f)  Nearby star:   9.2 mag,  325'' W,  156.5'' N.
 ">
-	  HB filter standards
-	</button>
-      </p>
+        HB filter standards
+      </button>
+    </p>
 
-      <p>
-	<button class="elevation-load-target-set-button"
-		data-targets="# Collected solar analogs by Audrey Delsanti
+    <p>
+      <button class="elevation-load-target-set-button" data-targets="# Collected solar analogs by Audrey Delsanti
 
 # Binzel and Bus, used at IRTF and Palomar
 SA 93-101,   f, 01:53:18.0, +00:22:25, V= 9.7
@@ -307,14 +300,15 @@ HD 186427, f, 19 41 52.0, +50 31 03, V=6.2; G2.5V; 16 Cyg B; IHW; double system
 HD 191854, f, 20 10 13.3, +43 56 45, V=7.4; G5V; IHW
 HD 217014, f, 22 57 23.0, +20 46 07, V=5.5; G2.5V; 51 Peg
 ">
-	  Solar analogs
-	</button>
-      </p>
+        Solar analogs
+      </button>
+    </p>
 
-      
-    </div>
 
-  </body>
-  <script type="text/javascript" src="elevation.js"></script>
-  <script type="text/javascript" src="mpc.js"></script>
+  </div>
+
+</body>
+<script type="text/javascript" src="elevation.js"></script>
+<script type="text/javascript" src="mpc.js"></script>
+
 </html>

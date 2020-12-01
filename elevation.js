@@ -1,46 +1,58 @@
 /**********************************************************************/
 var Util = {
-  airmassToAltitude: function(am) {
+  airmassToAltitude: function (am) {
     return new Angle(Math.PI / 2 - Math.acos(1 / am));
   },
 
-  altitudeToAirmass: function(alt) {
+  altitudeToAirmass: function (alt) {
     return 1 / Math.cos(Math.PI / 2 - alt.rad);
   },
 
-  branchcut: function(x, cut, period) {
+  branchcut: function (x, cut, period) {
     y = x % period;
-    y = (y < 0)?(y + period):(y);
-    return (y < cut)?(y):(y - period);
+    y = (y < 0) ? (y + period) : (y);
+    return (y < cut) ? (y) : (y - period);
   },
 
-  date: function() {
+  date: function () {
     return moment.tz($('#elevation-date').val() + ' 00:00',
-		     $('#elevation-timezone').val());
+      $('#elevation-timezone').val());
   },
-  
-  deg2hr: function(x) { return (x / 15); },
-  deg2rad: function(x) { return (x * Math.PI / 180); },  
 
-  figureOfMerit: function(rh, delta, mv) {
+  deg2hr: function (x) { return (x / 15); },
+  deg2rad: function (x) { return (x * Math.PI / 180); },
+
+  eq2gal: function (ra, dec) {
+    // equatorial to Galactic coordinates
+    // ra, dec as angles
+    // Practical Astronomy with your Calculator or Spreadsheet
+    // Duffett-Smith & Zwart
+    let x = Math.cos(dec.rad) * 0.88781539 * Math.cos(ra.rad - 3.3553954869590985);
+    let sinLat = x + Math.sin(dec.rad) * 0.46019978;
+    let lat = Math.asin(sinLat);
+    let lon = Math.atan2(Math.sin(dec.rad) - sinLat * 0.46019978, x) + 0.5759586531581288;
+    return { l: Angle(lat, 'rad'), b: Angle(lon, 'rad') };
+  },
+
+  figureOfMerit: function (rh, delta, mv) {
     let mH = mv - 5 * Math.log10(delta);
     let Q = Math.pow(10, 30.675 - 0.2453 * mH);
     let FoM = Math.pow(rh, -1.5) / delta * Q / 2.3e26;
     return FoM;
   },
 
-  hr2rad: function(x) { return (x * Math.PI / 12); },
-  hr2deg: function(x) { return (x * 15); },
+  hr2rad: function (x) { return (x * Math.PI / 12); },
+  hr2deg: function (x) { return (x * 15); },
 
-  isComet: function(name) {
+  isComet: function (name) {
     let n = name.trim().toUpperCase();
     let provisional = (
-      ['P/', 'C/', 'X/','D/'].indexOf(n.substring(0, 2)) > -1);
+      ['P/', 'C/', 'X/', 'D/'].indexOf(n.substring(0, 2)) > -1);
     let permanent = n.endsWith('P');
     return (permanent || provisional);
   },
 
-  jd: function(date) {
+  jd: function (date) {
     // Moment to Julian Date
     let utc = date.clone().tz('UTC');
     let Y = utc.year();
@@ -50,79 +62,79 @@ var Util = {
       M + 12;
     }
     let D = (utc.date()
-	     + (utc.hour()
-		+ (utc.minute()
-		   + utc.second() / 60)
-		/ 60)
-	     / 24);
+      + (utc.hour()
+        + (utc.minute()
+          + utc.second() / 60)
+        / 60)
+      / 24);
 
     let A = parseInt(Y / 100);
     let B = 2 - A + parseInt(A / 4);
     let jd = (parseInt(365.25 * (Y + 4716)) + parseInt(30.6001 * (M + 1))
-	      + D + B - 1524.5);
+      + D + B - 1524.5);
     return jd;
   },
 
-  loadTargets: function(targetList) {
+  loadTargets: function (targetList) {
     // Parse a CSV table and add any targets to Elevation's target table.
     let lines = targetList.split('\n');
     let delay = 0;
     let promise = new Promise((resolve, reject) => {
       setTimeout(() => resolve(1), Config.ajaxDelay);
     })
-    
+
     for (let i in lines) {
       if (lines[i].startsWith('#') || (lines[i].trim().length == 0)) {
-	continue;
+        continue;
       }
 
       let row = lines[i].split(',');
       if ((row.length < 2) || (row.length == 3) || (row.length > 5)) {
-	Util.msg("Bad row length: " + lines[i], true)
-	continue;
+        Util.msg("Bad row length: " + lines[i], true)
+        continue;
       }
 
       let name = row[0];
-      let meta = {note: row[4]};
+      let meta = { note: row[4] };
 
       if (row[1].trim() == 'f') {
-	let ra = new Angle(row[2], 'hr');
-	let dec = new Angle(row[3], 'deg');
-	table.add(new Target(name, ra, dec, 'f'));
+        let ra = new Angle(row[2], 'hr');
+        let dec = new Angle(row[3], 'deg');
+        table.add(new Target(name, ra, dec, 'f'));
       } else {
-	promise
-	  .then(() => setTimeout(() => (1), Config.ajaxDelay))
-	  .then(() => eph.get(name, meta))
-	  .then((target) => table.add(target));
+        promise
+          .then(() => setTimeout(() => (1), Config.ajaxDelay))
+          .then(() => eph.get(name, meta))
+          .then((target) => table.add(target));
       }
     }
   },
 
-  msg: function(s, error) {
+  msg: function (s, error) {
     let time = moment().toISOString().substr(11, 8);
     let con = $('#elevation-console');
     if (con.length) {
       let p = $('<p><span class="elevation-timestamp">' + time +
-		'</span>: ' + s + '</p>');
+        '</span>: ' + s + '</p>');
       if (error) {
-	p.addClass('elevation-error');
+        p.addClass('elevation-error');
       }
       con.prepend(p).scrollTop(0);
     }
-    console.log(time + (error?' (Error): ':': ') + s)
+    console.log(time + (error ? ' (Error): ' : ': ') + s)
   },
-  
-  rad2deg: function(x) { return (x * 180 / Math.PI); },
-  rad2hr: function(x) { return (x * 12 / Math.PI); },
 
-  scrollTo: function(id) {
+  rad2deg: function (x) { return (x * 180 / Math.PI); },
+  rad2hr: function (x) { return (x * 12 / Math.PI); },
+
+  scrollTo: function (id) {
     let e = $(id);
     if (e.length) {
       $('html, body').animate({ scrollTop: e.offset().top }, 500);
     }
   },
 
-  sexagesimal: function(x, seconds_precision, degrees_width) {
+  sexagesimal: function (x, seconds_precision, degrees_width) {
     /* 
        seconds_precision : integer
          decimals after the point, default 3.
@@ -135,7 +147,7 @@ var Util = {
       seconds_precision = 3;
     }
 
-    let sign = (x < 0)?'-':'+';
+    let sign = (x < 0) ? '-' : '+';
     let d = Math.floor(Math.abs(x));
     let m = Math.floor((Math.abs(x) - d) * 60);
     let s = ((Math.abs(x) - d) * 60 - m) * 60;
@@ -146,22 +158,22 @@ var Util = {
       s -= 60;
       m += 1;
     }
-    
+
     if (m >= 60) {
       m -= 60;
       d += 1;
     }
-    
+
     d = d.toFixed(0);
     m = m.toFixed(0);
     s = s.toFixed(seconds_precision);
-    
+
     if (degrees_width === undefined) {
       d = sign + d;
     } else {
       d = sign + '0'.repeat(degrees_width - d.length) + d;
     }
-    
+
     m = '0'.repeat(2 - m.length) + m;
 
     if (seconds_precision == 0) {
@@ -172,10 +184,10 @@ var Util = {
 
     return d + ':' + m + ':' + s;
   },
-  
-  sexagesimalToFloat: function(s) {
+
+  sexagesimalToFloat: function (s) {
     let _s = s.trim().match(/^([-+]?)(.+)/);
-    let sign = (_s[1] == '-')?-1:1;
+    let sign = (_s[1] == '-') ? -1 : 1;
     _s = _s[2];  // now just the magnitude
 
     if (_s.includes('d')) {
@@ -193,27 +205,27 @@ var Util = {
     let scales = [1, 60, 3600];
     for (let i in dms) {
       if (i > 2) {
-	break;
+        break;
       }
       angle += dms[i] / scales[i];
     }
-    
+
     return sign * angle;
   },
 
-  sum: function(a, b) { return a + b; },  
+  sum: function (a, b) { return a + b; },
 
-  updateTargets: function(updateEphemerides) {
+  updateTargets: function (updateEphemerides) {
     // If any targets have been defined, update them.
     let rows = $('.elevation-target');
     for (let i = 0; i < rows.length; i += 1) {
       target = table.datatable.row(i).data().targetData;
       if (updateEphemerides && (target.type != 'f')) {
-	eph.get(target.name, {})
-	  .then((target) => table.add(target, i));
+        eph.get(target.name, {})
+          .then((target) => table.add(target, i));
       } else {
-	target.update();
-	table.add(target, i);
+        target.update();
+        table.add(target, i);
       }
     }
   },
@@ -245,22 +257,22 @@ class Angle {
       a = a;
     }
 
-    switch(unit) {
-    case 'deg':
-      a = Util.deg2rad(a);
-      break;
-    case 'hr':
-      a = Util.hr2rad(a);
-      break;
-    default:
+    switch (unit) {
+      case 'deg':
+        a = Util.deg2rad(a);
+        break;
+      case 'hr':
+        a = Util.hr2rad(a);
+        break;
+      default:
     }
     this._a = a;
   }
-  
 
-  get deg () { return Util.rad2deg(this.rad); }
-  get hr () { return Util.rad2hr(this.rad); }
-  get rad () { return this._a; }
+
+  get deg() { return Util.rad2deg(this.rad); }
+  get hr() { return Util.rad2hr(this.rad); }
+  get rad() { return this._a; }
 
   dms(seconds_precision, degrees_width) {
     return Util.sexagesimal(this.deg, seconds_precision, degrees_width);
@@ -299,22 +311,22 @@ class AngleArray {
          'deg', 'rad', or 'hr', default is 'rad'.
     */
 
-    let conv = function(a) {
+    let conv = function (a) {
       let b;
       if (typeof a === 'string') {
-	b = Util.sexagesimalToFloat(a);
+        b = Util.sexagesimalToFloat(a);
       } else {
-	b = a;
+        b = a;
       }
 
-      switch(unit) {
-      case 'deg':
-	b = Util.deg2rad(b);
-	break;
-      case 'hr':
-	b = Util.hr2rad(b);
-	break;
-      default:
+      switch (unit) {
+        case 'deg':
+          b = Util.deg2rad(b);
+          break;
+        case 'hr':
+          b = Util.hr2rad(b);
+          break;
+        default:
       }
 
       return b;
@@ -327,37 +339,37 @@ class AngleArray {
     let b;
     if (a instanceof AngleArray) {
       if (a.rad.length == this.rad.length) {
-	b = this.rad.map(function(x, i) { return x + a.rad[i]; });
+        b = this.rad.map(function (x, i) { return x + a.rad[i]; });
       } else {
-	throw "Arrays have different lengths: "
-	  + this.rad.length + " " + a.rad.length;
+        throw "Arrays have different lengths: "
+        + this.rad.length + " " + a.rad.length;
       }
     } else if (a instanceof Angle) {
-      b = this.rad.map(function(x) { return x + a.rad; });
+      b = this.rad.map(function (x) { return x + a.rad; });
     } else {
       throw "Can only add Angles or AngleArrays: " + (typeof a);
     }
     return new AngleArray(b);
   }
-  
-  get deg () { return this._a.map(Util.rad2deg); }
-  get hr () { return this._a.map(Util.rad2hr); }
-  get rad () { return this._a; }
-  
+
+  get deg() { return this._a.map(Util.rad2deg); }
+  get hr() { return this._a.map(Util.rad2hr); }
+  get rad() { return this._a; }
+
   dms(seconds_precision, degrees_width) {
-    return this.deg.map(function(a) {
+    return this.deg.map(function (a) {
       return Util.sexagesimal(a, seconds_precision, degrees_width);
     });
   }
 
   hms(seconds_precision, hours_width) {
-    return this.hr.map(function(a) {
+    return this.hr.map(function (a) {
       return Util.sexagesimal(a, seconds_precision, hours_width);
     });
   }
 
   branchcut(cut, period) {
-    return new AngleArray(this.rad.map(function(a){
+    return new AngleArray(this.rad.map(function (a) {
       return Util.branchcut(a, cut.rad, period.rad);
     }));
   }
@@ -365,8 +377,8 @@ class AngleArray {
   rise(thresh) {
     /* Return the index of angle where it rises past thresh (default
        radians). */
-    return this.rad.findIndex(function(a, i, alt) {
-      return ((alt[i-1] < thresh.rad) && (alt[i] >= thresh.rad));
+    return this.rad.findIndex(function (a, i, alt) {
+      return ((alt[i - 1] < thresh.rad) && (alt[i] >= thresh.rad));
     });
   }
 
@@ -378,21 +390,21 @@ class AngleArray {
   set(thresh) {
     /* Return the index of alt where it sets past thresh (default
        radians). */
-    return this.rad.findIndex(function(a, i, alt) {
-      return ((alt[i-1] > thresh.rad) && (alt[i] <= thresh.rad));
+    return this.rad.findIndex(function (a, i, alt) {
+      return ((alt[i - 1] > thresh.rad) && (alt[i] <= thresh.rad));
     });
   }
 
   greater(thresh) {
     /* Return true for each element greater than the threshold
        (default radians). */
-    return this.rad.map(function(a) { return (a > thresh.rad); });
+    return this.rad.map(function (a) { return (a > thresh.rad); });
   }
 
   less(thresh) {
     /* Return true for each element less than the threshold
        (default radians). */
-    return this.rad.map(function(a) { return (a < thresh.rad); });
+    return this.rad.map(function (a) { return (a < thresh.rad); });
   }
 }
 
@@ -418,15 +430,15 @@ class Target {
       Chris O'Dell (UW-Maddison).
     */
     let _ct = Array.apply(null, Array(Config.ctSteps))
-      .map(function(x, i){
-	return -Math.PI + i * Config.ctStepSize.rad;
+      .map(function (x, i) {
+        return -Math.PI + i * Config.ctStepSize.rad;
       });
     this.ct = new AngleArray(_ct)
       .branchcut(new Angle(12, 'hr'), new Angle(24, 'hr'));
 
     this.ha = new AngleArray(
-      this.ct.rad.map(function(x){
-	return (x + observatory.lst0.rad - this.ra.rad) % (2 * Math.PI);
+      this.ct.rad.map(function (x) {
+        return (x + observatory.lst0.rad - this.ra.rad) % (2 * Math.PI);
       }, this));
 
     let sha = this.ha.rad.map(Math.sin);
@@ -461,15 +473,15 @@ class Sun extends Target {
     // between 1900 and 2100.
     let jd = Util.jd(date);
     let T = (jd - 2451545.0) / 36525;
-    
-    let L0 = new Angle(280.46646 + 36000.76983 * T + 0.0003032 * T**2, 'deg');
-    let M = new Angle(357.52911 + 35999.05029 * T - 0.0001537 * T**2, 'deg');
+
+    let L0 = new Angle(280.46646 + 36000.76983 * T + 0.0003032 * T ** 2, 'deg');
+    let M = new Angle(357.52911 + 35999.05029 * T - 0.0001537 * T ** 2, 'deg');
     //let e = 0.016708634 - 0.000042037 * T - 0.0000001267 * T**2;
-    
+
     let C = new Angle(
-      (1.914602 - 0.004817 * T - 0.000014 * T**2) * Math.sin(M.rad)
-	+ (0.019993 - 0.000101 * T) * Math.sin(2 * M.rad)
-	+ 0.000289 * Math.sin(3 * M.rad), 'deg');
+      (1.914602 - 0.004817 * T - 0.000014 * T ** 2) * Math.sin(M.rad)
+      + (0.019993 - 0.000101 * T) * Math.sin(2 * M.rad)
+      + 0.000289 * Math.sin(3 * M.rad), 'deg');
 
     let dlam = new Angle(1.297 * T, 'deg');
     let lambda = new Angle(L0.rad + C.rad - dlam.rad);
@@ -477,8 +489,8 @@ class Sun extends Target {
     let eps0 = new Angle(23.43929111111111, 'deg');
     let ra = new Angle(
       Math.atan2(
-	Math.cos(eps0.rad) * Math.sin(lambda.rad),
-	Math.cos(lambda.rad)));
+        Math.cos(eps0.rad) * Math.sin(lambda.rad),
+        Math.cos(lambda.rad)));
     let dec = new Angle(
       Math.asin(Math.sin(eps0.rad) * Math.sin(lambda.rad)));
 
@@ -521,14 +533,14 @@ class Observatory {
     let d0 = (d - j2000 / 86400 / 1000);  // days since J2000 epoch
     let T0 = d0 / 365.25;  // years since J2000 epoch
     let th0 = 280.46061837
-	+ 360.98564736629 * d0
-	+ 0.000387933 * Math.pow(T0, 2)
-	- Math.pow(T0, 3) / 38710000.0;
+      + 360.98564736629 * d0
+      + 0.000387933 * Math.pow(T0, 2)
+      - Math.pow(T0, 3) / 38710000.0;
     th0 = new Angle(th0 % 360.0, 'deg');
     this.lst0 = th0.add(this.lon).sub(tzoff).mod(new Angle(2 * Math.PI));
   }
 
-  get midnight () {
+  get midnight() {
     let tzoff = new Angle(this.date.utcOffset() / 60, 'hr');
     return moment(this.date).add(tzoff, 'hours');
   }
@@ -540,19 +552,19 @@ class Plot {
     let layout = {
       title: 'YYYY-MM-DD at ASDF',
       yaxis: {
-	title: 'Elevation (deg)',
-	range: [10, 90]
+        title: 'Elevation (deg)',
+        range: [10, 90]
       },
       xaxis: {
-	range: [-7, 7],
-	tickmode: "array",
-	tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
+        range: [-7, 7],
+        tickmode: "array",
+        tickvals: [-12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10, 12],
       },
       margin: {
-	t: 40,
-	b: 50,
-	l: 50,
-	r: 50,
+        t: 40,
+        b: 50,
+        l: 50,
+        r: 50,
       },
       hovermode: 'closest',
       showlegend: true,
@@ -560,7 +572,7 @@ class Plot {
     Plotly.newPlot('elevation-plot', [], layout);
     this.setupXAxis();
   }
-  
+
   add(target) {
     let data = {
       name: target.name,
@@ -573,7 +585,7 @@ class Plot {
     };
     Plotly.addTraces('elevation-plot', data);
   }
-  
+
   airmassGuides() {
     // 19, 30, 50, 65 = 3, 2, 1.3, 1.1
     let alt = [19, 30, 50];
@@ -581,20 +593,20 @@ class Plot {
     for (let i in alt) {
       shapes.push({
         type: 'rect',
-	xref: 'paper',
-	x0: 0,
-	x1: 1,
-	yref: 'y',
-	y0: -90,
-	y1: alt[i],
-	fillcolor: '#e5a839',
-	opacity: 0.15,
-	line: { width: 0 }
+        xref: 'paper',
+        x0: 0,
+        x1: 1,
+        yref: 'y',
+        y0: -90,
+        y1: alt[i],
+        fillcolor: '#e5a839',
+        opacity: 0.15,
+        line: { width: 0 }
       });
     }
     return shapes;
   }
-  
+
   clear() {
     let plotdiv = $('#elevation-plot')[0];
     let traces = [];
@@ -611,7 +623,7 @@ class Plot {
   }
 
   clearGuides() {
-    Plotly.relayout('elevation-plot', {shapes: []});
+    Plotly.relayout('elevation-plot', { shapes: [] });
   }
 
   guides() {
@@ -620,32 +632,32 @@ class Plot {
     Array.prototype.push.apply(shapes, this.airmassGuides());
 
     this.clearGuides();
-    Plotly.relayout('elevation-plot', {shapes: shapes});
+    Plotly.relayout('elevation-plot', { shapes: shapes });
   }
 
   sunGuides() {
     let shapes = [];
     let alt = [new Angle(-18, 'deg'),
-	       new Angle(-12, 'deg'),
-	       new Angle(-6, 'deg'),
-	       new Angle(0)];
+    new Angle(-12, 'deg'),
+    new Angle(-6, 'deg'),
+    new Angle(0)];
     for (let i in alt) {
       let t = [[-12, observatory.sun.ct.hr[observatory.sun.alt.set(alt[i])]],
-	       [12, observatory.sun.ct.hr[observatory.sun.alt.rise(alt[i])]]];
+      [12, observatory.sun.ct.hr[observatory.sun.alt.rise(alt[i])]]];
       for (let j in t) {
-	let shape = {
-	  type: 'rect',
-	  xref: 'x',
-	  x0: t[j][0],
-	  x1: t[j][1],
-	  yref: 'paper',
-	  y0: 0,
-	  y1: 1,
-	  fillcolor: '#87cefa',
-	  opacity: 0.2,
-	  line: { width: 0 }
-	};
-	shapes.push(shape);
+        let shape = {
+          type: 'rect',
+          xref: 'x',
+          x0: t[j][0],
+          x1: t[j][1],
+          yref: 'paper',
+          y0: 0,
+          y1: 1,
+          fillcolor: '#87cefa',
+          opacity: 0.2,
+          line: { width: 0 }
+        };
+        shapes.push(shape);
       }
     }
     return shapes;
@@ -657,17 +669,17 @@ class Plot {
     for (let i = -12; i <= 12; i++) {
       tickvals.push(i);
       if (i < 0) {
-	ticklabels.push(i + 24);
+        ticklabels.push(i + 24);
       } else {
-	ticklabels.push(i);
+        ticklabels.push(i);
       }
     }
 
     let update = {
       xaxis: {
-	range: [-7, 7],
-	tickmode: "array",
-	tickvals: tickvals
+        range: [-7, 7],
+        tickmode: "array",
+        tickvals: tickvals
       }
     };
     let t = new AngleArray(ticklabels, 'hr');
@@ -676,18 +688,18 @@ class Plot {
     } else if (Config.timeAxis == 'UT') {
       update.xaxis.title = 'Universal Time (hr)';
       t = t.add(new Angle(-Util.date().utcOffset() / 60, 'hr'))
-	.branchcut(new Angle(24, 'hr'), new Angle(24, 'hr'));
+        .branchcut(new Angle(24, 'hr'), new Angle(24, 'hr'));
     }
 
     update.xaxis.ticktext = t.hms(0, 2)
-      .map(function(a) { return a.substr(1, 5); });
+      .map(function (a) { return a.substr(1, 5); });
     Plotly.relayout('elevation-plot', update);
   }
 
   updateTitle() {
     let update = {
       title: (observatory.name + ' / ' +
-	      observatory.date.toISOString().substring(0, 10))
+        observatory.date.toISOString().substring(0, 10))
     };
     Plotly.relayout('elevation-plot', update);
   }
@@ -702,17 +714,19 @@ class Table {
       columns: [
         { data: "checkbox" },
         {
-	  data: "target",
-	  type: "natural"
-	},
+          data: "target",
+          type: "natural"
+        },
         { data: "ra" },
-        { data:
-	  {
-	    _: "dec.display",
-	    sort: "dec.degree"
-	  },
-	  type: "numeric"
-	},
+        {
+          data:
+          {
+            _: "dec.display",
+            sort: "dec.degree"
+          },
+          type: "numeric"
+        },
+        { data: "b" },
         { data: "mv" },
         { data: "FoM" },
         { data: "rh" },
@@ -721,12 +735,13 @@ class Table {
         { data: "selong" },
         { data: "lelong" },
         { data: "mu" },
-        { data:
-	  {
-            _:    "transit.display",
+        {
+          data:
+          {
+            _: "transit.display",
             sort: "transit.hour",
-	  },
-	  type: "numeric"
+          },
+          type: "numeric"
         },
         { data: "uptime" },
         { data: "darktime" },
@@ -751,7 +766,8 @@ class Table {
       display: target.dec.dms(0, 2),
       degree: Util.rad2deg(target.dec)
     };
-    
+    row.b = Util.eq2gal(target.ra, target.dec).b.deg.toFixed(0);
+
     if ('note' in target) {
       row.notes = target.note;
     } else {
@@ -760,20 +776,20 @@ class Table {
 
     // columns and number of places for toFixed call
     let columns = {
-      mv: {places: 1},
-      FoM: {places: 1},
-      rh: {places: 2},
-      delta: {places: 2},
-      phase: {places: 0},
-      selong: {places: 0},
-      lelong: {places: 0},
-      mu: {places: 0}
+      mv: { places: 1 },
+      FoM: { places: 1 },
+      rh: { places: 2 },
+      delta: { places: 2 },
+      phase: { places: 0 },
+      selong: { places: 0 },
+      lelong: { places: 0 },
+      mu: { places: 0 }
     };
     for (let k in columns) {
       if (k in target) {
-	row[k] = target[k].toFixed(columns[k].places);
+        row[k] = target[k].toFixed(columns[k].places);
       } else {
-	row[k] = '';
+        row[k] = '';
       }
     }
 
@@ -784,8 +800,8 @@ class Table {
     }
     row.transit = {
       display: Util.sexagesimal(
-	Util.branchcut(transit + offset, 24, 24), 0, 2)
-	.substr(0, 6),
+        Util.branchcut(transit + offset, 24, 24), 0, 2)
+        .substr(0, 6),
       hour: transit
     };
 
@@ -797,7 +813,7 @@ class Table {
       row.darktime = 0;
     } else {
       let dark = observatory.sun.alt.less(new Angle(-18, 'deg'));
-      let test = up.map(function(x, i) { return x * dark[i]; });
+      let test = up.map(function (x, i) { return x * dark[i]; });
       let darktime = 24 / Config.ctSteps * test.reduce(Util.sum, 0);
       row.darktime = Util.sexagesimal(darktime, 0, 2).substr(0, 6);
     }
@@ -805,19 +821,19 @@ class Table {
     let tr;
     if (replace === undefined) {
       tr = $(this.datatable.row
-	     .add(row)
-	     .draw()
-	     .node());
+        .add(row)
+        .draw()
+        .node());
       tr = $(tr);
     } else {
       // Keep the same checkbox state
       let checkboxState = $(this.datatable.row(replace).node())
-	  .find(':checkbox')[0].checked;
+        .find(':checkbox')[0].checked;
 
       tr = $(this.datatable.row(replace)
-	     .data(row)
-	     .draw()
-	     .node());
+        .data(row)
+        .draw()
+        .node());
       tr.find(':checkbox')[0].checked = checkboxState;
     }
 
@@ -840,12 +856,12 @@ class Table {
     let targets = $('#elevation-target-table').find(':checkbox');
     for (let i = 0; i < targets.length; i += 1) {
       if (targets[i].checked) {
-	setTimeout(function(i) {
-	  let j = table.datatable.rows().indexes()[i];
-	  let data = table.datatable.row(j).data();
-	  plot.add(data.targetData);
-	}, delay * Config.ajaxDelay, i);
-	delay += 1;
+        setTimeout(function (i) {
+          let j = table.datatable.rows().indexes()[i];
+          let data = table.datatable.row(j).data();
+          plot.add(data.targetData);
+        }, delay * Config.ajaxDelay, i);
+        delay += 1;
       }
     }
   }
@@ -866,7 +882,7 @@ class DummyEphemeris {
   checkAvailability() {
     Util.msg('Dummy ephemeris service (random) is available.');
   }
-  
+
   get(name, type, done, opts) {
     let date = Util.date();
     if (isNaN(date)) {
@@ -889,14 +905,14 @@ class DummyEphemeris {
 
 /**********************************************************************/
 var Callback = {
-  addMovingTarget: function(e) {
+  addMovingTarget: function (e) {
     let name = $('#elevation-add-moving-target-name').val();
     let type = $('#elevation-add-moving-target-type').val();
     eph.get(name, {})
       .then((target) => table.add(target));
   },
 
-  addFixedTarget: function(e) {
+  addFixedTarget: function (e) {
     t = new Target(
       $('#elevation-add-fixed-target-name').val(),
       new Angle($('#elevation-add-fixed-target-ra').val(), 'hr'),
@@ -906,77 +922,77 @@ var Callback = {
     table.add(t);
   },
 
-  checkEphemerisAvailability: function(e) {
+  checkEphemerisAvailability: function (e) {
     eph.checkAvailability();
   },
-  
-  openFile: function(e) {
+
+  openFile: function (e) {
     let reader = new FileReader();
-    reader.onload = function(f) { Util.loadTargets(f.target.result); };
+    reader.onload = function (f) { Util.loadTargets(f.target.result); };
     reader.readAsText(e.target.files[0]);
   },
 
-  loadTargetSetButton: function(e) {
+  loadTargetSetButton: function (e) {
     let button = $(e.target);
     $('#elevation-target-list').val(button.data('targets'));
     Util.loadTargets(button.data('targets'));
     Util.scrollTo('#elevation-target-table-box');
   },
-  
-  rowCheckboxToggle: function(e) {
+
+  rowCheckboxToggle: function (e) {
     if (e.target.tagName == 'INPUT') { return; }
     $(e.target)
       .parent()
       .find(':checkbox')
-      .each(function() {
-	this.checked = !this.checked;
+      .each(function () {
+        this.checked = !this.checked;
       });
   },
 
-  selectRows: function(e) {
+  selectRows: function (e) {
     let _table = $('#elevation-target-table');
     switch (e.target.value) {
-    case "all":
-      _table.find(':checkbox').each(function(){this.checked = true;});
-      break;
-    case "none":
-      _table.find(':checkbox').each(function(){this.checked = false;});
-      break;
-    case "airmass":
-      _table.find(':checkbox').each(
-	function(i) {
-	  let up = table.uptime(i);
-	  if (up > 0) {
-	    this.checked = true;
-	  } else {
-	    this.checked = false;
-	  }
-	});
-      break;
-    case "dark":
-      _table.find(':checkbox').each(
-	function(i) {
-	  let dark = table.darktime(i);
-	  if (dark > 0) {
-	    this.checked = true;
-	  } else {
-	    this.checked = false;
-	  }
-	});
-      break;
-    default:
+      case "all":
+        _table.find(':checkbox').each(function () { this.checked = true; });
+        break;
+      case "none":
+        _table.find(':checkbox').each(function () { this.checked = false; });
+        break;
+      case "airmass":
+        _table.find(':checkbox').each(
+          function (i) {
+            let up = table.uptime(i);
+            if (up > 0) {
+              this.checked = true;
+            } else {
+              this.checked = false;
+            }
+          });
+        break;
+      case "dark":
+        _table.find(':checkbox').each(
+          function (i) {
+            let dark = table.darktime(i);
+            if (dark > 0) {
+              this.checked = true;
+            } else {
+              this.checked = false;
+            }
+          });
+        break;
+      default:
     }
     e.target.value = "select";
   },
 
-  setAirmassLimit: function(e) {
+  setAirmassLimit: function (e) {
     let am = parseFloat($(e.target).val());
     Config.altitudeLimit = Util.airmassToAltitude(am);
     $('#elevation-altitude-limit').html(Config.altitudeLimit.deg.toFixed(1));
     Util.updateTargets(false);
   },
-  
-  updateObservatory: function(e) {
+
+  updateObservatory: function (e) {
     plot.clear();
 
     let date = Util.date();
@@ -1009,10 +1025,10 @@ var Callback = {
 
 /**********************************************************************/
 $(document).ready(
-  function() {
+  function () {
     // Need the date setup for timezone first in case plot uses UT
     $('#elevation-date').val(moment.tz().format().substr(0, 10));
-    
+
     if (Config.debug) {
       eph = new DummyEphemeris();
     } else if (Config.ephSource == 'mpc') {
@@ -1024,16 +1040,16 @@ $(document).ready(
     table = new Table();
 
     $('#elevation-row-selection').change(Callback.selectRows);
-    $('#elevation-plot-selected').click(function(){table.plot();});
-    $('#elevation-clear-plot').click(function(){plot.clear();});
-    $('#elevation-clear-table').click(function(){table.clear();});
+    $('#elevation-plot-selected').click(function () { table.plot(); });
+    $('#elevation-clear-plot').click(function () { plot.clear(); });
+    $('#elevation-clear-table').click(function () { table.clear(); });
 
     $('.add-fixed-target-on-enter').keyup(
-      function(e) { if (e.keyCode == 13) { Callback.addFixedTarget(e); } }
+      function (e) { if (e.keyCode == 13) { Callback.addFixedTarget(e); } }
     );
 
     $('.add-moving-target-on-enter').keyup(
-      function(e) { if (e.keyCode == 13) { Callback.addMovingTarget(e);	} }
+      function (e) { if (e.keyCode == 13) { Callback.addMovingTarget(e); } }
     );
 
     $('#elevation-add-moving-target-button').click(Callback.addMovingTarget);
@@ -1041,17 +1057,17 @@ $(document).ready(
 
     $('#elevation-open-file').change(Callback.openFile);
 
-    $('.elevation-observatory').click(function(e) {
+    $('.elevation-observatory').click(function (e) {
       $('#elevation-observatory-name').val(
-	$(e.target).text());
+        $(e.target).text());
       $('#elevation-observatory-latitude').val(
-	parseFloat(e.target.dataset.latitude));
+        parseFloat(e.target.dataset.latitude));
       $('#elevation-observatory-longitude').val(
-	parseFloat(e.target.dataset.longitude));
+        parseFloat(e.target.dataset.longitude));
       $('#elevation-observatory-altitude').val(
-	parseFloat(e.target.dataset.altitude));
+        parseFloat(e.target.dataset.altitude));
       $('#elevation-timezone').val(
-	e.target.dataset.timezone);
+        e.target.dataset.timezone);
       Callback.updateObservatory(e);
     });
     $('#elevation-update-observatory-button')
@@ -1061,18 +1077,18 @@ $(document).ready(
       .change(Callback.setAirmassLimit)
       .change();
 
-    $('#elevation-xaxis-ut').change(function(e) {
+    $('#elevation-xaxis-ut').change(function (e) {
       if (e.target.checked) {
-	Config.timeAxis = 'UT';
+        Config.timeAxis = 'UT';
       } else {
-	Config.timeAxis = 'CT';
+        Config.timeAxis = 'CT';
       }
       plot.setupXAxis();
       $('.elevation-time-axis').html(Config.timeAxis);
       Util.updateTargets();
     }).change();
-    
-    $('#elevation-load-button').click(function(e) {
+
+    $('#elevation-load-button').click(function (e) {
       Util.loadTargets($('#elevation-target-list').val());
       Util.scrollTo('#elevation-target-table-box');
     });
