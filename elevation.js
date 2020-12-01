@@ -27,11 +27,14 @@ var Util = {
     // ra, dec as angles
     // Practical Astronomy with your Calculator or Spreadsheet
     // Duffett-Smith & Zwart
-    let x = Math.cos(dec.rad) * 0.88781539 * Math.cos(ra.rad - 3.3553954869590985);
-    let sinLat = x + Math.sin(dec.rad) * 0.46019978;
+    let sinLat = Math.cos(dec.rad) * 0.88781539 * Math.cos(ra.rad - 3.3553954869590985)
+      + Math.sin(dec.rad) * 0.46019978;
     let lat = Math.asin(sinLat);
-    let lon = Math.atan2(Math.sin(dec.rad) - sinLat * 0.46019978, x) + 0.5759586531581288;
-    return { l: new Angle(lat, 'rad'), b: new Angle(lon, 'rad') };
+    let lon = Math.atan2(
+      Math.sin(dec.rad) - sinLat * 0.46019978,
+      Math.cos(dec.rad) * 0.88781539 * Math.sin(ra.rad - 3.3553954869590985)
+    ) + 0.5759586531581288;
+    return { b: new Angle(lat, 'rad'), l: new Angle(lon, 'rad') };
   },
 
   figureOfMerit: function (rh, delta, mv) {
