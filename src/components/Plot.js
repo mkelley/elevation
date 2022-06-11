@@ -1,9 +1,11 @@
+import moment from 'moment-timezone';
 import React from 'react';
 import Plot from 'react-plotly.js';
 import Angle from '../model/Angle';
 import AngleArray from '../model/AngleArray';
 
 function guides(observer) {
+  // if the number of guides is updated, then update the time marker useEffect
   const shapes = [];
   Array.prototype.push.apply(shapes, sunGuides(observer));
   Array.prototype.push.apply(shapes, airmassGuides());
@@ -111,6 +113,45 @@ function plotTarget(target) {
 
 export default function ElevationPlot({ observer, targets, isUTC }) {
   const [shapes, setShapes] = React.useState([]);
+
+  React.useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (shapes.length < 10) {
+        // guides are not yet added
+        setShapes(shapes);
+        return;
+      }
+
+      const time = new Angle(
+        moment().tz(observer.date ? observer.date.format('z') : '').format('hh:mm:ss'), 'hr');
+      const x = (time.hr > 12) ? (time.hr - 24) : time.hr;
+      const newShapes = [...shapes];
+
+      if (newShapes.length > 11) {
+        newShapes.splice(11);
+      }
+      newShapes.push({
+        type: 'line',
+        xref: 'x',
+        x0: x,
+        x1: x,
+        yref: 'paper',
+        y0: 0,
+        y1: 1,
+        opacity: 0.33,
+        line: {
+          width: 1,
+          color: 'red'
+        }
+      });
+      setShapes(newShapes);
+    }, 3000);
+
+    // clear interval on re-render to avoid memory leaks
+    return () => clearInterval(intervalId);
+    // add shapes as a dependency to re-rerun the effect
+    // when we update it
+  }, [shapes, observer]);
 
   React.useEffect(() => {
     if (observer && observer.sun) {
