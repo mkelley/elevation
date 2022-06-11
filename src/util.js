@@ -1,6 +1,8 @@
+import React from "react";
 import moment from "moment-timezone";
 import Angle from "./model/Angle";
 import AngleArray from "./model/AngleArray";
+import { type } from "@testing-library/user-event/dist/type";
 
 export function airmassToElevation(am) {
   return new Angle(Math.PI / 2 - Math.acos(1 / am));
@@ -198,4 +200,181 @@ export function solarEphemeris(date) {
     Math.asin(Math.sin(eps0.rad) * Math.sin(lambda.rad)));
 
   return { name: "Sun", ra, dec };
+}
+
+export function useCookieState(key, defaultState) {
+  const cookie = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith(key + '='));
+
+  let decode, encode;
+  if (typeof defaultState === 'boolean') {
+    decode = (s) => s === 'true';
+    encode = (s) => String(s);
+  } else {
+    decode = (s) => s;
+    encode = (s) => String(s);
+  }
+
+  const value = cookie ? decode(cookie.split('=', 2)[1]) : defaultState;
+
+  const [state, _setState] = React.useState(value);
+
+  const setState = (value) => {
+    document.cookie = [key, encode(value)].join('=');
+    _setState(value);
+  };
+
+  return [state, setState];
+}
+
+function targetsReducer(targets, action) {
+  let updatedTargets;
+  switch (action.type) {
+    case 'append': {
+      updatedTargets = [...targets, action.target];
+      break;
+    }
+    case 'append targets': {
+      updatedTargets = [...targets, ...action.targets];
+      break;
+    }
+    case 'update': {
+      updatedTargets = [...targets];
+      updatedTargets[action.index] = action.target;
+      break;
+    }
+    case 'delete': {
+      updatedTargets = [...targets];
+      updatedTargets.splice(action.index, 1);
+      break;
+    }
+    case 'delete targets': {
+      const names = action.targets.map((target) => target.name);
+      updatedTargets = targets.filter((target) => !names.includes(target.name));
+      break;
+    }
+    case 'delete all': {
+      updatedTargets = [];
+      break
+    }
+    case 'clear plot': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, plot: false }
+      );
+      break;
+    }
+    case 'plot selected': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, plot: target.selected || target.plot }
+      );
+      break;
+    }
+    case 'do not plot selected': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, plot: target.selected ? false : target.plot }
+      );
+      break;
+    }
+    case 'refresh': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, refresh: true }
+      );
+      break;
+    }
+    case 'select-all': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: true }
+      );
+      break;
+    }
+    case 'select-none': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: false }
+      );
+      break
+    }
+    case 'select-inverted': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: !target.selected }
+      );
+      break;
+    }
+    case 'select-less-than-airmass-limit': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimit > 0 }
+      );
+      break;
+    }
+    case 'select-greater-than-airmass-limit': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimit.rad === 0 }
+      );
+      break;
+    }
+    case 'select-dark': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimitAndDark > 0 }
+      );
+      break;
+    }
+    case 'select-not-dark': {
+      updatedTargets = targets.map((target) =>
+        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimitAndDark.rad === 0 }
+      );
+      break;
+    }
+    case 'refresh-observer': {
+      updatedTargets = targets.map((target) => {
+        if (target === 'new') {
+          return target;
+        } else if (target.moving) {
+          // ephemeris service update may be needed, let Target manage that
+          return { ...target, refresh: true };
+        } else {
+          // fixed targets just need to update elevation properties
+          return { ...target, ...elevation(target, action.observer) }
+        }
+      });
+      break;
+    }
+    default:
+      throw new Error();
+  }
+  document.cookie = 'targets=' + JSON.stringify(updatedTargets.map((target) => ({
+    name: target.name,
+    moving: target.moving,
+    notes: target.notes,
+    selected: target.selected,
+    plot: target.plot,
+    ra: target.ra.rad,
+    dec: target.dec.rad,
+    mV: target.mV
+  })));
+  return updatedTargets;
+}
+
+export function useTargets() {
+  // example targets
+  // { name: '2P', moving: true, notes: "", refresh: true, selected: false, plot: true },
+  // { name: '16 Cyg', moving: false, ra: new Angle(0), dec: new Angle(0), mV: 7, notes: "", refresh: true, selected: false, plot: true }
+
+  // check cookies for saved targets
+  const cookie = document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('targets='));
+
+  let savedTargets = [];
+  if (cookie) {
+    // deserialize to a javascript object, taking care with ra and dec
+    savedTargets = JSON.parse(cookie.split('=', 2)[1]).map((target) => ({
+      ...target,
+      ra: new Angle(target.ra),
+      dec: new Angle(target.dec),
+      refresh: true
+    }));
+  }
+
+  const [targets, targetDispatch] = React.useReducer(targetsReducer, savedTargets);
+  return [targets, targetDispatch];
 }

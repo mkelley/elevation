@@ -142,7 +142,7 @@ export default function Observer({ observer, setObserver, isUTC, setIsUTC }) {
       updateObserver(customObserver);
   });
 
-  const timeOffset = isUTC
+  const timeOffset = observer && isUTC
     ? new Angle(-observer.date.utcOffset() / 60, 'hr')
     : new Angle(0);
   const sunset = observer && observer.sun.twilight.sunset.add(timeOffset).clock();

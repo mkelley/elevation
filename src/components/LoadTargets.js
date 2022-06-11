@@ -14,7 +14,8 @@ function textToTargets(text) {
         moving: cols[1] === 'm',
         ra: (!cols[2] || cols[2] === "") ? "" : new Angle(cols[2], 'hr'),
         dec: (!cols[3] || cols[3] === "") ? "" : new Angle(cols[3], 'deg'),
-        notes: cols[4] || "",
+        mV: cols[4] || "",
+        notes: cols[5] || "",
         selected: false,
         plot: true,
         refresh: true,
@@ -24,11 +25,12 @@ function textToTargets(text) {
 }
 
 export default function LoadTargets({ targets, targetDispatch, addMessage }) {
-  const [targetTextArea, setTargetTextArea] = React.useState(`# Target, Type, RA, Dec, Notes
-2P/Encke,m,,,classic
-C/2021 E3 (ZTF),m
-16 Cyg b,f,19 41 52,+50 31 03,G3V
-`);
+  const [targetTextArea, setTargetTextArea] = React.useState(`
+# Target,        Type, RA,       Dec,       mV, Notes
+2P/Encke,        m,    ,         ,          ,   classic
+C/2021 E3 (ZTF), m
+16 Cyg B,        f,    19 41 52, +50 31 03, 6,  G3V
+`.trim());
 
   const readFile = (event) => {
     event.preventDefault();
@@ -67,10 +69,7 @@ C/2021 E3 (ZTF),m
     }
 
     if (!error && newTargets.length) {
-      newTargets.map((target) => {
-        return targetDispatch({ type: 'append', target })
-      });
-
+      targetDispatch({ type: 'append targets', targets: newTargets });
       addMessage({
         severity: 'info',
         text: `Added: ${newTargets.map((target) => target.name).join(', ')}.`
@@ -90,7 +89,7 @@ C/2021 E3 (ZTF),m
   return <div className="box elevation-ui">
     <h2>Load targets</h2>
     <ul>
-      <li>Columns: Target, Type, RA, Dec, Notes.</li>
+      <li>Columns: Target, Type, RA, Dec, mV, Notes.</li>
       <li>Type: m for a moving target.</li>
       <li>RA and Dec may be any sensible format, e.g., -12, -12d 34m,
         12h34m56s, 12:34:56.78.</li>
