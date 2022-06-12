@@ -341,7 +341,7 @@ function targetsReducer(targets, action) {
     default:
       throw new Error();
   }
-  document.cookie = 'targets=' + JSON.stringify(updatedTargets.map((target) => ({
+  document.cookie = 'targets=' + encodeURIComponent(JSON.stringify(updatedTargets.map((target) => ({
     name: target.name,
     moving: target.moving,
     notes: target.notes,
@@ -350,7 +350,7 @@ function targetsReducer(targets, action) {
     ra: target.ra.rad,
     dec: target.dec.rad,
     mV: target.mV
-  })));
+  }))));
   return updatedTargets;
 }
 
@@ -367,12 +367,14 @@ export function useTargets() {
   let savedTargets = [];
   if (cookie) {
     // deserialize to a javascript object, taking care with ra and dec
-    savedTargets = JSON.parse(cookie.split('=', 2)[1]).map((target) => ({
-      ...target,
-      ra: new Angle(target.ra),
-      dec: new Angle(target.dec),
-      refresh: true
-    }));
+    savedTargets = JSON.parse(
+      decodeURIComponent(cookie.split('=', 2)[1]))
+      .map((target) => ({
+        ...target,
+        ra: new Angle(target.ra),
+        dec: new Angle(target.dec),
+        refresh: true
+      }));
   }
 
   const [targets, targetDispatch] = React.useReducer(targetsReducer, savedTargets);
