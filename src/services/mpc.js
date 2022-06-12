@@ -158,7 +158,7 @@ function parseMpcEphemerisServiceResponse(text) {
     delta: parseFloat(eph.substring(39, 46)),
     phase: parseFloat(eph.substring(62, 67)),
     mV: parseFloat(eph.substring(69, 73)),
-    solarElongation: parseFloat(eph.substring(56, 61)),
+    solarElongation: parseFloat(eph.substring(56, 61)).toFixed(0),
     lunarElongation: parseFloat(eph.substring(118, 121)),
   }
 

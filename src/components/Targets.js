@@ -1,12 +1,13 @@
 import React from "react";
 import EditableTarget from "./EditableTarget";
 import Target from "./Target";
-import { useCookieState } from "../util";
+import { eq2gal, figureOfMerit, useCookieState } from "../util";
 
 
 // Targets are rendered as a table
 export default function Targets({ observer, targets, targetDispatch, addMessage, isUTC }) {
   const [ephemerisSource, setEphemerisSource] = useCookieState("ephemerisSource", "mpc");
+  const [sortBy, setSortBy] = React.useState(null);
 
   const updateTarget = (newTarget, index) => {
     targetDispatch({
@@ -14,7 +15,7 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
       target: newTarget,
       index
     })
-  }
+  };
 
   const updateSelected = (selected, index) => {
     targetDispatch({
@@ -25,7 +26,7 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
       },
       index
     });
-  }
+  };
 
   const updatePlot = (plot, index) => {
     targetDispatch({
@@ -36,7 +37,7 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
       },
       index
     });
-  }
+  };
 
   const addTarget = (newTarget, index) => {
     if (targets.map((target) => target.name).includes(newTarget.name))
@@ -47,14 +48,14 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
         target: newTarget,
         index
       });
-  }
+  };
 
   const cancelAddTarget = (index) => {
     targetDispatch({
       type: 'delete',
       index
     });
-  }
+  };
 
   const changeSelection = (event) => {
     switch (event.target.value) {
@@ -70,6 +71,53 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
       default:
     }
   };
+
+  const changeEphemerisSource = (event) => {
+    setEphemerisSource(event.target.value);
+    targetDispatch({ type: 'refresh' });
+  };
+
+  const changeSort = (event) => {
+    const sortKey = event.target.dataset.sortKey;
+    if (sortBy === null)
+      setSortBy({ key: sortKey, direction: 'asc' });
+    else if (sortBy.key !== sortKey)
+      setSortBy({ key: sortKey, direction: 'asc' });
+    else if (sortBy.direction === 'asc')
+      setSortBy({ key: sortKey, direction: 'desc' });
+    else
+      setSortBy(null);
+  };
+
+  const sortTargets = (a, b) => {
+    if (sortBy === null) {
+      return null;
+    }
+
+    const direction = (sortBy.direction === 'asc') ? 1 : -1;
+
+    let A, B;
+    if (["name", "notes"].includes(sortBy.key)) {
+      // string comparison
+      return direction * a[sortBy.key].localeCompare(b[sortBy.key], 'en', { numeric: true, sensitivity: 'base' })
+    } else if (sortBy.key === "b") {
+      A = eq2gal(a.ra, a.dec).b.rad;
+      B = eq2gal(b.ra, b.dec).b.rad;
+    } else if (sortBy.key === "fom") {
+      A = a.rh && a.delta && a.mV && figureOfMerit(a.rh, a.delta, a.mV);
+      B = b.rh && b.delta && b.mV && figureOfMerit(b.rh, b.delta, b.mV);
+    } else if (["ra", "dec", "transitTime", "timeAboveElevationLimit", "timeAboveElevationLimitAndDark"]
+      .includes(sortBy.key)) {
+      A = a[sortBy.key] && a[sortBy.key].rad;
+      B = b[sortBy.key] && b[sortBy.key].rad;
+    } else {
+      A = a[sortBy.key];
+      B = b[sortBy.key];
+    }
+    return direction * (A - B);
+  }
+
+  const sortedTargets = [...targets].sort(sortTargets);
 
   return (
     <div className="box overflowx" id="elevation-target-table-box">
@@ -102,28 +150,28 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
         <thead>
           <tr>
             <th style={{ width: "1em" }}></th>
-            <th>Plot</th>
-            <th style={{ width: "12em" }}>Target</th>
-            <th>Moving</th>
-            <th>RA (hr)</th>
-            <th>Dec (&deg;)</th>
-            <th>&mu; (''/hr)</th>
-            <th>b (&deg;)</th>
-            <th>m<sub>V</sub></th>
-            <th>FoM</th>
-            <th>r<sub>h</sub> (au)</th>
-            <th>&Delta; (au)</th>
-            <th>Phase (&deg;)</th>
-            <th>Sol. Elong. (&deg;)</th>
-            <th>Lun. Elong. (&deg;)</th>
-            <th>Transit ({isUTC ? "UTC" : "CT"})</th>
-            <th>&lt;AM limit (hr)</th>
-            <th>and dark (hr)</th>
-            <th style={{ width: "10em" }}>Notes</th>
+            <th data-sort-key="plot" onClick={changeSort}>Plot</th>
+            <th data-sort-key="name" onClick={changeSort} style={{ width: "12em" }}>Target</th>
+            <th data-sort-key="moving" onClick={changeSort}>Moving</th>
+            <th data-sort-key="ra" onClick={changeSort}>RA (hr)</th>
+            <th data-sort-key="dec" onClick={changeSort}>Dec (&deg;)</th>
+            <th data-sort-key="properMotion" onClick={changeSort}>&mu; (''/hr)</th>
+            <th data-sort-key="b" onClick={changeSort}>b (&deg;)</th>
+            <th data-sort-key="mV" onClick={changeSort}>m<sub>V</sub></th>
+            <th data-sort-key="fom" onClick={changeSort}>FoM</th>
+            <th data-sort-key="rh" onClick={changeSort}>r<sub>h</sub> (au)</th>
+            <th data-sort-key="delta" onClick={changeSort}>&Delta; (au)</th>
+            <th data-sort-key="phase" onClick={changeSort}>Phase (&deg;)</th>
+            <th data-sort-key="solarElongation" onClick={changeSort}>Sol. Elong. (&deg;)</th>
+            <th data-sort-key="lunarElongation" onClick={changeSort}>Lun. Elong. (&deg;)</th>
+            <th data-sort-key="transitTime" onClick={changeSort}>Transit ({isUTC ? "UTC" : "CT"})</th>
+            <th data-sort-key="timeAboveElevationLimit" onClick={changeSort}>&lt;AM limit (hr)</th>
+            <th data-sort-key="timeAboveElevationLimitAndDark" onClick={changeSort}>and dark (hr)</th>
+            <th data-sort-key="notes" onClick={changeSort} style={{ width: "10em" }}>Notes</th>
           </tr>
         </thead>
         <tbody>
-          {observer && targets.map((target, index) => {
+          {observer && sortedTargets.map((target, index) => {
             if (target === 'new') {
               return <EditableTarget
                 key={index}
@@ -156,7 +204,7 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
         </p>
         <p>
           {"Ephemerides from: "}
-          <select value={ephemerisSource} onChange={(event) => setEphemerisSource(event.target.value)}>
+          <select value={ephemerisSource} onChange={changeEphemerisSource}>
             <option value='mpc'>Minor Planet Center</option>
             <option value='debug'>None (debug mode)</option>
           </select>
