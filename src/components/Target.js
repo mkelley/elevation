@@ -6,7 +6,7 @@ import useMpcEphemerisService from "../services/mpc";
 /**
  * Targets render themselves as table rows
  */
-export default function Target({ index, target, observer, onChangeSelect, onChangePlot, onTargetUpdate, isUTC }) {
+export default function Target({ index, target, observer, onChangeSelect, onChangePlot, onTargetUpdate, isUTC, ephemerisSource, addMessage }) {
   const timeOffset = isUTC
     ? new Angle(-observer.date.utcOffset() / 60, 'hr')
     : new Angle(0);
@@ -20,7 +20,13 @@ export default function Target({ index, target, observer, onChangeSelect, onChan
         refresh: false
       }, index);
   };
-  useMpcEphemerisService(target, observer, onEphemerisSuccess, true);
+  const onEphemerisError = (error) => {
+    addMessage({
+      severity: 'error',
+      text: String(error)
+    });
+  }
+  useMpcEphemerisService(target, observer, onEphemerisSuccess, onEphemerisError, ephemerisSource === "debug");
 
   React.useEffect(() => {
     if (target.ra && observer) {

@@ -40,7 +40,7 @@ Foundation Computing Network</a>.
 </body>
 </html>`;
 
-export default function useMpcEphemerisService(target, observer, onSuccess, mockResponse) {
+export default function useMpcEphemerisService(target, observer, onSuccess, onError, mockResponse) {
   const date = observer && observer.date
     .toISOString()
     .replace('T', ' ')
@@ -50,14 +50,19 @@ export default function useMpcEphemerisService(target, observer, onSuccess, mock
   const longitude = observer && observer.latitude;
   const altitude = observer && observer.altitude;
 
+  const namePatterns = /([ACPD]\/[0-9]+ [A-Z0-9]+)/
+  const match = target.name.match(namePatterns)
+  const name = match ? match[0] : target.name;
+
   return useQuery(
-    ['mpes', target.moving, target.name, date, longitude, latitude, altitude, mockResponse],
-    () => fetchMpcEphemerisService(target.moving, target.name, date, longitude, latitude, altitude, mockResponse)
+    ['mpes', target.moving, name, date, longitude, latitude, altitude, mockResponse],
+    () => fetchMpcEphemerisService(target.moving, name, date, longitude, latitude, altitude, mockResponse)
       .then(parseMpcEphemerisServiceResponse),
     {
       retry: false,
       staleTime: Infinity,
       onSuccess: onSuccess,
+      onError: onError,
       refetchOnMount: "always"
     }
   );
@@ -75,6 +80,8 @@ async function fetchMpcEphemerisService(moving, name, date, longitude, latitude,
     console.log('Fetching mock MPES response.');
     return new Promise(resolve => resolve(MOCK_RESPONSE));
   }
+
+  // const cleanedName = 
 
   console.log(`Fetching ephemeris for ${name} from (${longitude.deg} deg, ${latitude.deg} deg, ${altitude} m) at ${date}`);
 
@@ -128,8 +135,14 @@ function parseMpcEphemerisServiceResponse(text) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, "text/html");
 
-  if (doc.getElementsByTagName('title')[0].innerText === 'Incorrect Form Entry') {
+  const title = doc.getElementsByTagName('title')[0].innerText;
+  if (title === 'Incorrect Form Entry') {
     throw new Error(text);
+  }
+
+  if (text.includes('No current elements found')) {
+    const error = doc.getElementsByTagName('p')[1].innerText;
+    throw new Error(error);
   }
 
   const table = doc.getElementsByTagName('pre')[0].innerText;

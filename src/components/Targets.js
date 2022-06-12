@@ -1,10 +1,13 @@
 import React from "react";
 import EditableTarget from "./EditableTarget";
 import Target from "./Target";
+import { useCookieState } from "../util";
 
 
 // Targets are rendered as a table
 export default function Targets({ observer, targets, targetDispatch, addMessage, isUTC }) {
+  const [ephemerisSource, setEphemerisSource] = useCookieState("ephemerisSource", "mpc");
+
   const updateTarget = (newTarget, index) => {
     targetDispatch({
       type: 'update',
@@ -139,6 +142,8 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
                   onChangePlot={updatePlot}
                   target={target}
                   isUTC={isUTC}
+                  ephemerisSource={ephemerisSource}
+                  addMessage={addMessage}
                 />);
             }
           })}
@@ -146,7 +151,16 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
       </table>
 
       <div className="elevation-ui">
-        <p><button onClick={() => targetDispatch({ type: 'append', target: 'new' })}>New target</button></p>
+        <p>
+          <button onClick={() => targetDispatch({ type: 'append', target: 'new' })}>New target</button>
+        </p>
+        <p>
+          {"Ephemerides from: "}
+          <select value={ephemerisSource} onChange={(event) => setEphemerisSource(event.target.value)}>
+            <option value='mpc'>Minor Planet Center</option>
+            <option value='debug'>None (debug mode)</option>
+          </select>
+        </p>
       </div>
     </div >
   );

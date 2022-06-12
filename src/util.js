@@ -2,7 +2,6 @@ import React from "react";
 import moment from "moment-timezone";
 import Angle from "./model/Angle";
 import AngleArray from "./model/AngleArray";
-import { type } from "@testing-library/user-event/dist/type";
 
 export function airmassToElevation(am) {
   return new Angle(Math.PI / 2 - Math.acos(1 / am));
@@ -210,10 +209,10 @@ export function useCookieState(key, defaultState) {
   let decode, encode;
   if (typeof defaultState === 'boolean') {
     decode = (s) => s === 'true';
-    encode = (s) => String(s);
+    encode = String;
   } else {
-    decode = (s) => s;
-    encode = (s) => String(s);
+    decode = decodeURIComponent;
+    encode = encodeURIComponent;
   }
 
   const value = cookie ? decode(cookie.split('=', 2)[1]) : defaultState;

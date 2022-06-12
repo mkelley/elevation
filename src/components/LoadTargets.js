@@ -121,7 +121,7 @@ const jwstCycle1 = `
 238P,m,,,,GTO
 29P,m,,,,Centaurs
 39P,m,,,,Centaurs
-P/2008 CL94,m,,,,Centaurs
+423P,m,,,,Centaurs (nee P/2008 CL94)
 C/2014 OG392,m,,,,Centaurs
 P/2019 LD2,m,,,,Centaurs
 C/2004 A1,m,,,,Centaurs
@@ -222,7 +222,7 @@ export default function LoadTargets({ targets, targetDispatch, addMessage }) {
   const [targetTextArea, setTargetTextArea] = React.useState(`
 # Target,        Type, RA,       Dec,       mV, Notes
 2P/Encke,        m,    ,         ,          ,   classic
-C/2021 E3 (ZTF), m
+C/2022 E3 (ZTF), m
 16 Cyg B,        f,    19 41 52, +50 31 03, 6,  G3V
 `.trim());
 
@@ -298,9 +298,9 @@ C/2021 E3 (ZTF), m
         onChange={(event) => setTargetTextArea(event.target.value)}
       />
       <br />
-      <input id="elevation-open-file" type="file" onChange={readFile} /><br />
       <button onClick={addTargets}>Add targets</button>
-      <br />
+      <input id="elevation-open-file" type="file" onChange={readFile} />
+      <hr />
       <button onClick={() => setTargetTextArea(ldtTargets)}>LDT comets</button>
       <button onClick={() => setTargetTextArea(lookTargets)}>LOOK targets</button>
       <button onClick={() => setTargetTextArea(jwstCycle1)}>JWST Cycle 1 comets</button>

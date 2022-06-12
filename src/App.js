@@ -6,18 +6,11 @@ import LoadTargets from './components/LoadTargets';
 import Plot from './components/Plot';
 import Targets from './components/Targets';
 import './App.css';
-import Angle from './model/Angle';
 import { useCookieState, useTargets } from './util';
 
 const queryClient = new QueryClient()
 
 function App() {
-  const cookies = Object.fromEntries(
-    document.cookie
-      .split('; ')
-      .map((row) => row.split('=', 2))
-  );
-
   const [isUTC, setIsUTC] = useCookieState('isUTC', false);
   const [messages, setMessages] = React.useState([{
     severity: "info",

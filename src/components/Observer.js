@@ -150,8 +150,6 @@ export default function Observer({ observer, setObserver, isUTC, setIsUTC }) {
   const atRise = observer && observer.sun.twilight.astronomicalStart.add(timeOffset).clock();
   const sunrise = observer && observer.sun.twilight.sunrise.add(timeOffset).clock();
 
-  const timeLabel = isUTC ? "(UTC)" : "(CT)";
-
   return (
     <div className="box">
       <h2>Observer</h2>
