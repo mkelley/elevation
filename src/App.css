@@ -1,0 +1,120 @@
+.App {
+  text-align: left;
+}
+
+@media screen {
+  body {
+    background: #2F2F2F;
+    color: white;
+    padding: 5px;
+    min-width: 1000px;
+  }
+
+  table {
+    border-collapse: collapse;
+    /* font-family: monospace; */
+  }
+
+  table th {
+    font-size: small;
+  }
+
+  table,
+  th,
+  td {
+    border: 1px solid #aaa;
+  }
+
+  td {
+    padding: 3px;
+  }
+
+  th {
+    padding: 6px;
+    text-align: center;
+  }
+
+  table tr:hover {
+    background: #5f5f5f;
+  }
+
+  table td:nth-child(19n+1),
+  table td:nth-child(19n+2),
+  table td:nth-child(19n+3),
+  table td:nth-child(19n+4) {
+    text-align: center;
+  }
+
+  table td:nth-child(19n+5),
+  table td:nth-child(19n+6),
+  table td:nth-child(19n+7),
+  table td:nth-child(19n+8),
+  table td:nth-child(19n+9),
+  table td:nth-child(19n+10),
+  table td:nth-child(19n+11),
+  table td:nth-child(19n+12),
+  table td:nth-child(19n+13),
+  table td:nth-child(19n+14),
+  table td:nth-child(19n+15),
+  table td:nth-child(19n+16),
+  table td:nth-child(19n+17),
+  table td:nth-child(19n+18) {
+    text-align: right;
+  }
+
+  #elevation-target-table-control *,
+  #elevation-load-target-control * {
+    margin: 5px;
+  }
+
+  #elevation-console {
+    height: 6em;
+    overflow-y: auto;
+  }
+
+  .elevation-message-info {
+    color: white;
+  }
+
+  .elevation-message-error {
+    color: #ff6666;
+  }
+
+  .elevation-message-annotation {
+    font-size: smaller;
+  }
+
+  .box {
+    border: 1px solid white;
+    border-radius: 5px;
+    margin: 5px;
+    padding: 10px;
+  }
+
+  #elevation-add-moving-target-name,
+  #elevation-add-fixed-target-name {
+    width: 12ex;
+  }
+
+  #elevation-add-fixed-target-ra-dec {
+    width: 10ex;
+  }
+
+  a:link,
+  a:visited {
+    color: #fa8;
+  }
+}
+
+@media print {
+  .elevation-ui {
+    display: none;
+  }
+}
+
+.observatory,
+.latlon,
+.alt,
+.timezone {
+  margin: 5px
+}
