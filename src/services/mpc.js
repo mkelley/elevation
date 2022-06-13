@@ -59,7 +59,8 @@ export default function useMpcEphemerisService(target, observer, onSuccess, onEr
     () => fetchMpcEphemerisService(target.moving, name, date, longitude, latitude, altitude, mockResponse)
       .then(parseMpcEphemerisServiceResponse),
     {
-      retry: false,
+      retry: 2,
+      retryDelay: (attempt) => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000),
       staleTime: Infinity,
       onSuccess: onSuccess,
       onError: onError,
