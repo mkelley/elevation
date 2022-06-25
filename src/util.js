@@ -340,16 +340,19 @@ function targetsReducer(targets, action) {
     default:
       throw new Error();
   }
-  document.cookie = 'targets=' + encodeURIComponent(JSON.stringify(updatedTargets.map((target) => ({
-    name: target.name,
-    moving: target.moving,
-    notes: target.notes,
-    selected: target.selected,
-    plot: target.plot,
-    ra: target.ra.rad,
-    dec: target.dec.rad,
-    mV: target.mV
-  }))));
+  document.cookie = 'targets=' + encodeURIComponent(JSON.stringify(
+    updatedTargets
+      .filter((target) => target !== 'new')
+      .map((target) => ({
+        name: target.name,
+        moving: target.moving,
+        notes: target.notes,
+        selected: target.selected,
+        plot: target.plot,
+        ra: target.ra.rad,
+        dec: target.dec.rad,
+        mV: target.mV || null
+      }))));
   return updatedTargets;
 }
 

@@ -5,3 +5,5 @@ Web app to plot elevation and transit time, with special attention given to Sola
 Solar System ephemerides are from the [Minor Planet and Comet Ephemeris Service](https://minorplanetcenter.net/iau/MPEph/MPEph.html) at the Minor Planet Center (MPC).
 
 Ephemeris for the Sun and some astronomical methods from Astronomical Algorithms by Jean Meeus.
+
+Live at [elevation.mkelley.dev](https://elevation.mkelley.dev).
