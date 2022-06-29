@@ -7,16 +7,24 @@ import Plot from './components/Plot';
 import Targets from './components/Targets';
 import './App.css';
 import { useCookieState, useTargets } from './util';
+import { VERSION } from './version';
 
 const queryClient = new QueryClient()
 
 function App() {
   const [isUTC, setIsUTC] = useCookieState('isUTC', false);
-  const [messages, setMessages] = React.useState([{
-    severity: "info",
-    date: new Date(),
-    text: <span>Using the Minor Planet Center's <a href="https://minorplanetcenter.net/iau/MPEph/MPEph.html">Ephemeris Service</a>.</span>
-  }]);
+  const [messages, setMessages] = React.useState([
+    {
+      severity: "info",
+      date: new Date(),
+      text: <span>Using the Minor Planet Center's <a href="https://minorplanetcenter.net/iau/MPEph/MPEph.html">Ephemeris Service</a>.</span>
+    },
+    {
+      severity: "info",
+      date: new Date(),
+      text: `Elevation build ${VERSION}.`
+    }
+  ]);
   const [observer, setObserverState] = React.useState(null);
   const [targets, targetDispatch] = useTargets();
 
@@ -29,7 +37,7 @@ function App() {
     setMessages([{ date: new Date(), ...message }, ...messages]);
     document.getElementById('elevation-console').scroll(0, 0);
   };
-
+  console.log(process.env);
   return (
     <QueryClientProvider client={queryClient}>
       <div className="App">

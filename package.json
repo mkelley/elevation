@@ -22,7 +22,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build",
+    "version-bump": "awk -i inplace '{ version = substr($NF, 0, length($NF) - 1); $NF = (version + 1); print $0 \";\"}' src/version.js",
+    "predeploy": "npm run version-bump && npm run build",
     "deploy": "node_modules/gh-pages/bin/gh-pages.js -d build"
   },
   "eslintConfig": {
