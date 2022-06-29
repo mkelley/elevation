@@ -6,13 +6,13 @@ import LoadTargets from './components/LoadTargets';
 import Plot from './components/Plot';
 import Targets from './components/Targets';
 import './App.css';
-import { useCookieState, useTargets } from './util';
+import { useCookieState, useTargets } from './services/cookies';
 import { VERSION } from './version';
 
 const queryClient = new QueryClient()
 
 function App() {
-  const [isUTC, setIsUTC] = useCookieState('isUTC', false);
+  const [isUTC, setIsUTC] = useCookieState("local", "isUTC", false);
   const [messages, setMessages] = React.useState([
     {
       severity: "info",
@@ -37,7 +37,7 @@ function App() {
     setMessages([{ date: new Date(), ...message }, ...messages]);
     document.getElementById('elevation-console').scroll(0, 0);
   };
-  console.log(process.env);
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="App">

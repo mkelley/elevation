@@ -1,12 +1,12 @@
 import React from "react";
 import EditableTarget from "./EditableTarget";
 import Target from "./Target";
-import { eq2gal, figureOfMerit, useCookieState } from "../util";
-
+import { eq2gal, figureOfMerit } from "../util";
+import { useCookieState } from "../services/cookies";
 
 // Targets are rendered as a table
 export default function Targets({ observer, targets, targetDispatch, addMessage, isUTC }) {
-  const [ephemerisSource, setEphemerisSource] = useCookieState("ephemerisSource", "mpc");
+  const [ephemerisSource, setEphemerisSource] = useCookieState("session", "ephemerisSource", "mpc");
   const [sortBy, setSortBy] = React.useState(null);
 
   const updateTarget = (newTarget, index) => {
