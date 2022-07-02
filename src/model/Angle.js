@@ -61,16 +61,19 @@ export default class Angle {
   /**
    * 
    * @param {number} angle the angle to convert
-   * @param {integer} secondsPrecision decimals after the point (default 1)
-   * @param {integer} degreesWidth zero-pad the degrees place to this width (default no padding)
+   * @param {integer} [secondsPrecision] decimals after the point (default 1)
+   * @param {integer} [degreesWidth] zero-pad the degrees place to this width (default no padding)
+   * @param {boolean} [alwaysSign] always show the +/- sign (default true)
    * @returns 
    */
-  static floatToSexagesimal(angle, secondsPrecision, degreesWidth) {
+  static floatToSexagesimal(angle, secondsPrecision, degreesWidth, alwaysSign) {
     if (isNaN(angle)) {
       return 'Nan';
     } else if (!isFinite(angle)) {
       return 'Infinite';
     }
+
+    alwaysSign = alwaysSign === undefined ? true : alwaysSign;
 
     if (secondsPrecision === undefined) {
       secondsPrecision = 0;
@@ -97,10 +100,8 @@ export default class Angle {
     m = m.toFixed(0);
     s = s.toFixed(secondsPrecision);
 
-    if (degreesWidth === undefined) {
-      d = sign + d;
-    } else {
-      d = sign + '0'.repeat(degreesWidth - d.length) + d;
+    if (degreesWidth !== undefined) {
+      d = '0'.repeat(Math.max(degreesWidth - d.length, 0)) + d;
     }
 
     m = '0'.repeat(2 - m.length) + m;
@@ -111,7 +112,7 @@ export default class Angle {
       s = '0'.repeat(2 - s.length + secondsPrecision + 1) + s;
     }
 
-    return d + ':' + m + ':' + s;
+    return (alwaysSign ? sign : (sign === '-' ? sign : "")) + d + ':' + m + ':' + s;
   }
 
 
@@ -167,16 +168,22 @@ export default class Angle {
   get hr() { return Angle.rad2hr(this.rad); }
   get rad() { return this._a; }
 
-  dms(secondsPrecision, degreesWidth) {
-    return Angle.floatToSexagesimal(this.deg, secondsPrecision, degreesWidth);
+  dms(secondsPrecision, degreesWidth, alwaysSign) {
+    secondsPrecision = (secondsPrecision === undefined) ? 0 : secondsPrecision;
+    degreesWidth = (degreesWidth === undefined) ? 2 : degreesWidth;
+    alwaysSign = (alwaysSign === undefined) ? true : alwaysSign;
+    return Angle.floatToSexagesimal(this.deg, secondsPrecision, degreesWidth, alwaysSign);
   }
 
-  hms(secondsPrecision, hours_width) {
-    return Angle.floatToSexagesimal(this.hr, secondsPrecision, hours_width);
+  hms(secondsPrecision, hoursWidth) {
+    secondsPrecision = (secondsPrecision === undefined) ? 1 : secondsPrecision;
+    hoursWidth = (hoursWidth === undefined) ? 2 : hoursWidth;
+    return Angle.floatToSexagesimal(this.hr, secondsPrecision, hoursWidth, false);
   }
 
-  hm(hours_width) {
-    return Angle.floatToSexagesimal(this.hr, 0, hours_width).substring(1, 6);
+  hm(hoursWidth) {
+    const s = Angle.floatToSexagesimal(this.hr, 0, hoursWidth, false)
+    return s.substring(0, s.length - 3);
   }
 
   clock() {

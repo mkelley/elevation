@@ -312,7 +312,7 @@ HD 118034,   f, 13:33:57.66, +17:28:05.0,  8.8,      G0-1  8.8 V  7.3 K
 HD 119856,   f, 13:46:17.64, -30:28:28.1,  8.2,     G1V-1  8.2 V  6.7 K
 HD 120050,   f, 13:46:57.91, +06:01:37.7,  9.2,   G5III-3  9.2 V  7.7 K
 BD+66 844,   f, 14:23:40.91, +65:23:43.8,  9.2,      G5-1  9.2 V  7.7 K
-BD+072790,  f, 14:27:55.15, +06:57:05.9,  9.2,      G0-1  9.2 V  7.7 K
+BD+072790,   f, 14:27:55.15, +06:57:05.9,  9.2,      G0-1  9.2 V  7.7 K
 HD 129171,   f, 14:40:18.39, +30:26:37.8,  7.6,      G0-1  7.6 V  6.2 K
 BD+24 2757,  f, 14:41:18.10, +23:43:19.6,  9.0,      G0-1  9.0 V  7.5 K
 HD 131526,   f, 14:52:20.91, +48:40:14.7,  7.6,      G0-1  7.6 V  6.1 K
@@ -467,6 +467,18 @@ C/2022 E3 (ZTF), m
     });
   }
 
+  const pullTargets = () => {
+    const maxNameWidth = Math.max(...targets.map((target) => target.name.length));
+    const header = `# Target,${" ".repeat(maxNameWidth - 8)} Type, RA,         Dec,       mV,   Notes`;
+    const lines = targets.map((target) => {
+      if (target.moving)
+        return `${target.name},${" ".repeat(maxNameWidth - target.name.length)} m,    ,           ,          ,     ${target.notes}`;
+      else
+        return `${target.name},${" ".repeat(maxNameWidth - target.name.length)} f,    ${target.ra.hms(1, 2)}, ${target.dec.dms()}, ${" ".repeat(Math.max(0, 4 - target.mV.length))}${target.mV}, ${target.notes}`;
+    });
+    setTargetTextArea([header, ...lines].join('\n'));
+  };
+
   return <div className="box elevation-ui">
     <h2>Load targets</h2>
     <ul>
@@ -496,6 +508,8 @@ C/2022 E3 (ZTF), m
       <button onClick={() => setTargetTextArea(hbStandards)}>HB filter standards</button>
       <button onClick={() => setTargetTextArea(delsantiAnalogs)}>Delsanti solar analog list</button>
       <button onClick={() => setTargetTextArea(lewin20)}>Lewin et al. 2020</button>
+      <br />
+      <button onClick={pullTargets}>From table</button>
     </div>
 
   </div>;
