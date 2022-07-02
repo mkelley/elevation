@@ -84,73 +84,73 @@ function targetsReducer(targets, action) {
     }
     case 'clear plot': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, plot: false }
+        (target.name === '__new__') ? target : { ...target, plot: false }
       );
       break;
     }
     case 'plot selected': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, plot: target.selected || target.plot }
+        (target.name === '__new__') ? target : { ...target, plot: target.selected || target.plot }
       );
       break;
     }
     case 'do not plot selected': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, plot: target.selected ? false : target.plot }
+        (target.name === '__new__') ? target : { ...target, plot: target.selected ? false : target.plot }
       );
       break;
     }
     case 'refresh': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, refresh: true }
+        (target.name === '__new__') ? target : { ...target, refresh: true }
       );
       break;
     }
     case 'select-all': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: true }
+        (target.name === '__new__') ? target : { ...target, selected: true }
       );
       break;
     }
     case 'select-none': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: false }
+        (target.name === '__new__') ? target : { ...target, selected: false }
       );
       break
     }
     case 'select-inverted': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: !target.selected }
+        (target.name === '__new__') ? target : { ...target, selected: !target.selected }
       );
       break;
     }
     case 'select-less-than-airmass-limit': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimit > 0 }
+        (target.name === '__new__') ? target : { ...target, selected: target.timeAboveElevationLimit > 0 }
       );
       break;
     }
     case 'select-greater-than-airmass-limit': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimit.rad === 0 }
+        (target.name === '__new__') ? target : { ...target, selected: target.timeAboveElevationLimit.rad === 0 }
       );
       break;
     }
     case 'select-dark': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimitAndDark > 0 }
+        (target.name === '__new__') ? target : { ...target, selected: target.timeAboveElevationLimitAndDark > 0 }
       );
       break;
     }
     case 'select-not-dark': {
       updatedTargets = targets.map((target) =>
-        (target === 'new') ? target : { ...target, selected: target.timeAboveElevationLimitAndDark.rad === 0 }
+        (target.name === '__new__') ? target : { ...target, selected: target.timeAboveElevationLimitAndDark.rad === 0 }
       );
       break;
     }
     case 'refresh-observer': {
       updatedTargets = targets.map((target) => {
-        if (target === 'new') {
+        if (target.name === '__new__') {
           return target;
         } else if (target.moving) {
           // ephemeris service update may be needed, let Target manage that
@@ -170,7 +170,7 @@ function targetsReducer(targets, action) {
     "local",
     "targets",
     updatedTargets
-      .filter((target) => target !== 'new')
+      .filter((target) => target.name !== '__new__')
       .map((target) => ({
         name: target.name,
         moving: target.moving,

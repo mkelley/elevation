@@ -117,7 +117,9 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
     return direction * (A - B);
   }
 
-  const sortedTargets = [...targets].sort(sortTargets);
+  const sortedTargets = [...targets]
+    .map((target, index) => ({ ...target, index }))
+    .sort(sortTargets);
 
   return (
     <div className="box overflowx" id="elevation-target-table-box">
@@ -171,19 +173,19 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
           </tr>
         </thead>
         <tbody>
-          {observer && sortedTargets.map((target, index) => {
-            if (target === 'new') {
+          {observer && sortedTargets.map((target) => {
+            if (target.name === '__new__') {
               return <EditableTarget
-                key={index}
-                index={index}
-                add={(newTarget) => addTarget(newTarget, index)}
-                cancel={() => cancelAddTarget(index)}
+                key={target.index}
+                index={target.index}
+                add={(newTarget) => addTarget(newTarget, target.index)}
+                cancel={() => cancelAddTarget(target.index)}
               />;
             } else {
               return (
                 <Target
-                  key={index}
-                  index={index}
+                  key={target.index}
+                  index={target.index}
                   observer={observer}
                   onTargetUpdate={updateTarget}
                   onChangeSelect={updateSelected}
@@ -200,7 +202,7 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
 
       <div className="elevation-ui">
         <p>
-          <button onClick={() => targetDispatch({ type: 'append', target: 'new' })}>New target</button>
+          <button onClick={() => targetDispatch({ type: 'append', target: { name: '__new__' } })}>New target</button>
         </p>
         <p>
           {"Ephemerides from: "}
