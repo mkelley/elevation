@@ -405,6 +405,20 @@ BD+17 4993,  f, 23:51:14.65, +18:21:32.3,  9.4,      G0-1  9.4 V  8.0 K
 HD 224465,   f, 23:58:06.82, +50:26:51.6,  6.6,     G4V-1  6.6 V  5.1 K
 `.trim()
 
+export function useDownloadableText(text) {
+  const [url, setURL] = React.useState(null);
+  React.useEffect(() => {
+    // https://javascript.info/blob
+    const blob = new Blob([text], { type: 'text/plain' });
+    const _url = URL.createObjectURL(blob);
+    setURL(_url);
+    return () => {
+      URL.revokeObjectURL(_url);
+    }
+  }, [text]);
+  return url;
+}
+
 export default function LoadTargets({ targets, targetDispatch, addMessage }) {
   const [targetTextArea, setTargetTextArea] = React.useState(`
 # Target,        Type, RA,       Dec,       mV, Notes
@@ -412,6 +426,7 @@ export default function LoadTargets({ targets, targetDispatch, addMessage }) {
 C/2022 E3 (ZTF), m
 16 Cyg B,        f,    19 41 52, +50 31 03, 6,  G3V
 `.trim());
+  const url = useDownloadableText(targetTextArea);
 
   const readFile = (event) => {
     event.preventDefault();
@@ -479,6 +494,15 @@ C/2022 E3 (ZTF), m
     setTargetTextArea([header, ...lines].join('\n'));
   };
 
+  const downloadFile = () => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = url.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return <div className="box elevation-ui">
     <h2>Load targets</h2>
     <ul>
@@ -499,6 +523,7 @@ C/2022 E3 (ZTF), m
       <br />
       <button onClick={addTargets}>Add targets</button>
       <input id="elevation-open-file" type="file" onChange={readFile} />
+      <button onClick={downloadFile}>Save file</button>
       <hr />
       <button onClick={() => setTargetTextArea(ldtTargets)}>LDT comets</button>
       <button onClick={() => setTargetTextArea(lookTargets)}>LOOK targets</button>
