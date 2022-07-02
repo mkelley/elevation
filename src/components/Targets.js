@@ -40,14 +40,20 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
   };
 
   const addTarget = (newTarget, index) => {
-    if (targets.map((target) => target.name).includes(newTarget.name))
+    if (targets.map((target) => target.name).includes(newTarget.name)) {
       addMessage({ severity: 'error', text: `${newTarget.name} is already defined.` });
-    else
+      targetDispatch({
+        type: 'update',
+        target: { ...newTarget, error: true },
+        index
+      });
+    } else {
       targetDispatch({
         type: 'update',
         target: newTarget,
         index
       });
+    }
   };
 
   const cancelAddTarget = (index) => {
@@ -180,6 +186,7 @@ export default function Targets({ observer, targets, targetDispatch, addMessage,
                 index={target.index}
                 add={(newTarget) => addTarget(newTarget, target.index)}
                 cancel={() => cancelAddTarget(target.index)}
+                allTargetNames={targets.map((target) => target.name)}
               />;
             } else {
               return (

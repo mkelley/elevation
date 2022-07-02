@@ -1,7 +1,7 @@
 import React from "react";
 import Angle from "../model/Angle";
 
-export default function EditableTarget({ add, cancel }) {
+export default function EditableTarget({ add, cancel, allTargetNames }) {
   const [name, setName] = React.useState("");
   const [moving, setMoving] = React.useState(true);
   const [plot, setPlot] = React.useState(true);
@@ -9,6 +9,8 @@ export default function EditableTarget({ add, cancel }) {
   const [dec, setDec] = React.useState("");
   const [mV, setMV] = React.useState("");
   const [notes, setNotes] = React.useState("");
+
+  const nameError = allTargetNames.includes(name);
 
   const handleAdd = () => {
     const target = {
@@ -42,6 +44,7 @@ export default function EditableTarget({ add, cancel }) {
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
+          style={{ background: nameError ? '#faa' : null }}
         />
       </td>
       <td>
