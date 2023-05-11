@@ -128,6 +128,15 @@ C/2004 A1,m,,,,Centaurs
 C/2017 K2,m,,,,Organics
 `.trim();
 
+const jwstCycle2 = `
+# Target, Type, RA, Dec, mV, Notes
+C/2019 E3,m,,,,Ice 2876
+C/2019 O3,m,,,,Ice 2876
+C/2020 F2,m,,,,Ice 2876
+133P,m,,,,MBCs 4250
+358P,m,,,,MBCs 4250
+`.trim();
+
 const hbStandards = `
 # HB filter B-type flux standards, Farnham et al. 2000
 # Target, Type, RA, Dec, mV, Notes
@@ -528,6 +537,7 @@ C/2022 E3 (ZTF), m
       <button onClick={() => setTargetTextArea(ldtTargets)}>LDT comets</button>
       <button onClick={() => setTargetTextArea(lookTargets)}>LOOK targets</button>
       <button onClick={() => setTargetTextArea(jwstCycle1)}>JWST Cycle 1 comets</button>
+      <button onClick={() => setTargetTextArea(jwstCycle2)}>JWST Cycle 2 comets</button>
       <button onClick={() => setTargetTextArea(cometaryOrbitalTrends)}>Orbital Trends</button>
       <br />
       <button onClick={() => setTargetTextArea(hbStandards)}>HB filter standards</button>
