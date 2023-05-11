@@ -24,6 +24,45 @@ function textToTargets(text) {
   return targets;
 }
 
+const umdAsteroids = `
+# Target, Type, RA, Dec, mV, Notes
+2956,m,,,,Yeomans (Donald K. Yeomans, Ph.D. 1970)
+3066,m,,,,McFadden (Lucy Ann McFadden, faculty)
+3192,m,,,,A'Hearn (Michael F. A'Hearn, faculty)
+3536,m,,,,Schleicher (David G. Schleicher, Ph.D. 1983)
+3742,m,,,,Sunshine (Jessica Sunshine, faculty)
+4201,m,,,,Orosz (Elizabeth Orosz Warner, research staff)
+4958,m,,,,Wellnitz (Dennis D. Wellnitz, faculty)
+9529,m,,,,Protopapa (Silvia Protopapa, faculty)
+9530,m,,,,Kelleymichael (Michael Kelley, faculty)
+10033,m,,,,Bodewits (Dennis Bodewits, faculty)
+10280,m,,,,Yequanzhi (Quanzhi Ye, faculty)
+12225,m,,,,Yanfernández (Yanga R. Fernández, Ph.D. 1999)
+12226,m,,,,Caseylisse (Carey M. Lisse, Ph.D. 1992)
+12494,m,,,,Doughamilton (Douglas P. Hamilton, faculty)
+12517,m,,,,Grayzeck (Edwin J. Grayzeck, Ph.D. 1974)
+12527,m,,,,Anneraugh (Anne C. Raugh, research staff)
+12566,m,,,,Derichardson (Derek C. Richardson, faculty)
+12859,m,,,,Marlamoore (Marla H. Moore, Ph.D. 1981)
+12871,m,,,,Samarasinha (Nalin H. Samarasinha, Ph.D. 1992)
+13001,m,,,,Woodney (Laura P. Woodney, Ph. D. 2000)
+13723,m,,,,Kolokolova (Ludmilla Kolokolova, faculty)
+15522,m,,,,Trueblood (Mark Trueblood, MS 1983)
+16232,m,,,,Chijagerbs (Gerbs Bauer, faculty))
+16946,m,,,,Farnham (Tony L. Farnham, faculty)
+16986,m,,,,Archivestef (Stephanie McLaughlin, research staff)
+21495,m,,,,Feaga (Lori Feaga, faculty)
+21496,m,,,,Lijianyang (Jianyang Li, faculty)
+22783,m,,,,Teng (Stacy Teng, Ph.D. 2010)
+25053,m,,,,Matthewknight (Matthew Knight, Ph.D. 2008)
+27227,m,,,,McAdam (Maggie McAdam , Ph.D. 2017)
+28594,m,,,,Ronaldballouz (Ron Ballouz, Ph.D. 2017)
+28788,m,,,,Hayes-Gehrke (Melissa Hayes-Gehrke, faculty)
+43081,m,,,,Stephenschwartz (Steve Schwartz, Ph.D. 2013)
+46208,m,,,,Gicquel (Adeline Brodtke Gicquel, faculty)
+249522,m,,,,Johndailey (John Dailey, faculty)
+`.trim();
+
 const lookTargets = `
 # Target, Type, RA, Dec, mV, Notes
 2005 QN173,m,,,,LOOK
@@ -543,6 +582,8 @@ C/2022 E3 (ZTF), m
       <button onClick={() => setTargetTextArea(hbStandards)}>HB filter standards</button>
       <button onClick={() => setTargetTextArea(delsantiAnalogs)}>Delsanti solar analog list</button>
       <button onClick={() => setTargetTextArea(lewin20)}>Lewin et al. 2020</button>
+      <br />
+      <button onClick={() => setTargetTextArea(umdAsteroids)}>UMD asteroids</button>
       <br />
       <button onClick={pullTargets}>From table</button>
     </div>
